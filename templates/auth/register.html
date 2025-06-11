@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="col-md-6">
+        <h2 class="text-center mb-4">Register</h2>
+        <form method="POST" action="{{ url_for('register') }}">
+            {{ form.hidden_tag() }}
+            
+            <div class="form-group">
+                <label for="mobile_number">Mobile Number</label>
+                {{ form.mobile_number(class="form-control") }}
+            </div>
+            
+            <div class="form-group">
+                <label for="first_name">First Name</label>
+                {{ form.first_name(class="form-control") }}
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                {{ form.email(class="form-control") }}
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                {{ form.password(class="form-control") }}
+            </div>
+            
+            <div class="form-group">
+                <label for="role">Role</label>
+                {{ form.role(class="form-control") }}
+            </div>
+            
+            <div class="form-group text-center">
+                <button type="submit" class="btn btn-primary">Register</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

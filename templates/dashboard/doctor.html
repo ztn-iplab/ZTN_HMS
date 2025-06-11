@@ -1,0 +1,22 @@
+<!-- templates/dashboard/doctor.html -->
+{% extends "base.html" %}
+
+{% block title %}Doctor Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="text-center">Doctor Dashboard</h2>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Patient Records</h4>
+            <p>View and update patient medical records.</p>
+            <a href="{{ url_for('view_patients') }}" class="btn btn-primary">View Patient Records</a>
+        </div>
+        <div class="col-md-6">
+            <h4>Appointments</h4>
+            <p>Manage your upcoming appointments with patients.</p>
+            <a href="{{ url_for('manage_appointments') }}" class="btn btn-primary">Manage Appointments</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

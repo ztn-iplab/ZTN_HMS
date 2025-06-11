@@ -1,0 +1,69 @@
+<!-- templates/index.html -->
+{% extends "base.html" %}
+
+{% block title %}Welcome to ZTN Hospital{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero bg-danger text-white text-center py-5">
+  <div class="container">
+    <h1 class="display-3 fw-bold">Welcome to ZTN Hospital</h1>
+    <p class="lead">A leading provider of healthcare services, leveraging Zero Trust security for a better tomorrow.</p>
+    <a href="{{ url_for('login') }}" class="btn btn-light btn-lg mt-3">Login to Your Account</a>
+  </div>
+</section>
+
+<!-- About Us Section -->
+<section class="about py-5">
+  <div class="container">
+    <h2 class="text-center mb-4">About Us</h2>
+    <div class="row">
+      <div class="col-md-6">
+        <p class="lead">
+          ZTN Hospital provides exceptional healthcare services, making use of advanced technologies and secure solutions. Our Zero Trust network ensures that patient data is always protected.
+        </p>
+      </div>
+      <div class="col-md-6">
+        <img src="{{ url_for('static', filename='img/hospital.avif') }}" alt="Hospital Building" class="img-fluid rounded shadow-sm" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Services Section -->
+<section class="services bg-light py-5">
+  <div class="container">
+    <h2 class="text-center mb-4">Our Services</h2>
+    <div class="row">
+      <div class="col-md-4">
+        <div class="card shadow-sm">
+          <img src="{{ url_for('static', filename='img/service1.avif') }}" alt="Medical Consultation" class="card-img-top">
+          <div class="card-body">
+            <h5 class="card-title">Medical Consultations</h5>
+            <p class="card-text">Our experienced doctors provide expert consultations across various specialties to meet your healthcare needs.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card shadow-sm">
+          <img src="{{ url_for('static', filename='img/service2.avif') }}" alt="Emergency Services" class="card-img-top">
+          <div class="card-body">
+            <h5 class="card-title">Emergency Services</h5>
+            <p class="card-text">Available 24/7, our emergency services team is always ready to handle any medical emergency with care and efficiency.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card shadow-sm">
+          <img src="{{ url_for('static', filename='img/service3.avif') }}" alt="Specialist Care" class="card-img-top">
+          <div class="card-body">
+            <h5 class="card-title">Specialist Care</h5>
+            <p class="card-text">We have a wide range of specialists offering advanced treatment options for various conditions.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
