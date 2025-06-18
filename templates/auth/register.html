@@ -8,36 +8,62 @@
         <h2 class="text-center mb-4">Register</h2>
         <form method="POST" action="{{ url_for('register') }}">
             {{ form.hidden_tag() }}
-            
+
             <div class="form-group">
                 <label for="mobile_number">Mobile Number</label>
                 {{ form.mobile_number(class="form-control") }}
             </div>
-            
+
             <div class="form-group">
                 <label for="first_name">First Name</label>
                 {{ form.first_name(class="form-control") }}
             </div>
-            
+
             <div class="form-group">
                 <label for="email">Email</label>
                 {{ form.email(class="form-control") }}
             </div>
-            
+
             <div class="form-group">
                 <label for="password">Password</label>
                 {{ form.password(class="form-control") }}
             </div>
-            
+
             <div class="form-group">
                 <label for="role">Role</label>
-                {{ form.role(class="form-control") }}
+                {{ form.role(class="form-control", id="role") }}
             </div>
-            
-            <div class="form-group text-center">
+
+            <!-- 🔹 Custom Role Input (Hidden Initially) -->
+            <div class="form-group" id="custom-role-container" style="display: none;">
+                <label for="custom_role">Custom Role</label>
+                <input type="text" name="custom_role" class="form-control" id="custom_role" placeholder="Enter your role (e.g., Doctor)">
+            </div>
+
+            <div class="form-group text-center mt-4">
                 <button type="submit" class="btn btn-primary">Register</button>
             </div>
         </form>
     </div>
 </div>
+
+<!-- 🔹 Add dynamic toggle -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const roleSelect = document.getElementById('role');
+    const customRoleContainer = document.getElementById('custom-role-container');
+    const customRoleInput = document.getElementById('custom_role');
+
+    roleSelect.addEventListener('change', function () {
+        if (this.value === 'other') {
+            customRoleContainer.style.display = 'block';
+            customRoleInput.setAttribute('required', 'required');
+        } else {
+            customRoleContainer.style.display = 'none';
+            customRoleInput.removeAttribute('required');
+            customRoleInput.value = '';
+        }
+    });
+});
+</script>
 {% endblock %}

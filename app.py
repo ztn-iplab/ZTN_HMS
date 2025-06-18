@@ -1,29 +1,39 @@
 import requests
-from flask import Flask, render_template, redirect, url_for, request, flash, session, g, jsonify
+from flask import Flask, render_template, redirect, url_for, request, flash, session, g, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_wtf import FlaskForm
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
 from wtforms import StringField, PasswordField, SelectField
 from wtforms.validators import DataRequired, Email
+from flask_wtf import FlaskForm
 from werkzeug.security import generate_password_hash
+import requests
 import certifi
-from forms import LoginForm
+from routes.auth import auth_bp
 
-# Initialize the Flask app
+# === App Configuration ===
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '7225b2a423a0eb52bffc1278c4d9a97f'  # Use a strong secret key
+app.config['SECRET_KEY'] = '7225b2a423a0eb52bffc1278c4d9a97f'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///hospital_app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Initialize extensions
+
+#BluePrints
+app.register_blueprint(auth_bp)
+
+# === Extensions ===
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
-# ZTN-IAM API URL
-ZTN_IAM_URL = "https://localhost.localdomain/api/v1/auth/"  # ZTN-IAM service URL
+# === ZTN-IAM API URL ===
+ZTN_IAM_URL = "https://localhost.localdomain/api/v1/auth"
+API_KEY = "mohealthapikey987654"
 
-# Models
+# === Models ===
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
@@ -40,145 +50,177 @@ class UserRole(db.Model):
     role_name = db.Column(db.String(50), nullable=False)
     permissions = db.Column(db.JSON)
     tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=True)
-    
-    tenant = db.relationship('Tenant', backref='roles')
 
     __table_args__ = (
         db.UniqueConstraint('role_name', 'tenant_id', name='uq_role_per_tenant'),
-        {'extend_existing': True},  # <<< ✨ THIS IS THE PATCH ✨
+        {'extend_existing': True},
     )
 
+# === Forms ===
 class RegisterForm(FlaskForm):
     mobile_number = StringField('Mobile Number', validators=[DataRequired()])
     first_name = StringField('First Name', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
-    role = SelectField('Role', choices=[('doctor', 'Doctor'), ('nurse', 'Nurse'), ('admin', 'Admin')], validators=[DataRequired()])
+    role = SelectField('Role', choices=[], validators=[DataRequired()])
+    custom_role = StringField('Custom Role')
 
-# User loader function for Flask-Login
+# === User Loader ===
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Route for homepage (index.html)
+# === Routes ===
 @app.route('/')
 def home():
-    return render_template('index.html')  # This will be your homepage or landing page
-
+    return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    form = RegisterForm()  # WTForms form instance
-    
-    # Fetch roles from ZTN-IAM API
-    roles_response = requests.get(
-        f"{ZTN_IAM_URL}/roles",  # Assuming the roles endpoint is available in the ZTN-IAM API
-        headers={"X-API-KEY": "mohealthapikey987654", "Content-Type": "application/json"},
-        verify=False  # Temporarily disable SSL verification for development
-    )
-    
-    # Check if the roles are fetched successfully
-    if roles_response.status_code == 200:
-        roles = roles_response.json()  # Parse the JSON response
-        
-        # Populate the role dropdown in the form with the roles fetched from ZTN-IAM
-        form.role.choices = [(role['role_name'], role['role_name']) for role in roles]  # Adjust based on the structure of the response
-    else:
-        roles = []  # In case of an error, use an empty list for roles
-        
+    form = RegisterForm()
+
+    # Fetch available roles from ZTN-IAM
+    try:
+        roles_response = requests.get(
+            f"{ZTN_IAM_URL}/roles",
+            headers={"X-API-KEY": API_KEY, "Content-Type": "application/json"},
+            verify=False
+        )
+        if roles_response.status_code == 200:
+            roles = roles_response.json()
+            if roles:
+                form.role.choices = [(r["role_name"], r["role_name"]) for r in roles]
+                form.role.choices.append(("other", "Other"))  # 🔥 Allow dynamic roles
+            else:
+                flash("No roles defined for your tenant. Please contact admin.", 'warning')
+        else:
+            flash("Could not fetch roles from IAM service.", 'danger')
+
+    except Exception as e:
+        flash("IAM connection failed.", "danger")
+        form.role.choices = [('user', 'User'), ('other', 'Other')]
+
     if form.validate_on_submit():
-        # Prepare registration data to send to ZTN-IAM
+        selected_role = form.role.data
+
+        # 🔥 If tenant chose "Other", attempt to create the new role first
+        if selected_role == "other":
+            custom_role = form.custom_role.data.strip()
+            if not custom_role:
+                flash("Custom role name is required.", "danger")
+                return redirect(url_for("register"))
+
+            # Try to create the new role via IAM
+            try:
+                role_creation = requests.post(
+                    f"{ZTN_IAM_URL}/roles",
+                    json={"role_name": custom_role, "permissions": {}},  # Permissions can be extended later
+                    headers={
+                        "X-API-KEY": API_KEY,
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {get_admin_token()}"  # Optional if your IAM requires JWT
+                    },
+                    verify=False
+                )
+                if role_creation.status_code != 201:
+                    error_msg = role_creation.json().get("error", "Unknown error while creating custom role.")
+                    flash(f"Custom role creation failed: {error_msg}", "danger")
+                    return redirect(url_for("register"))
+                selected_role = custom_role  # Set it to use in registration below
+            except Exception:
+                flash("Failed to create custom role via IAM.", "danger")
+                return redirect(url_for("register"))
+
+        # Proceed to register user with final role
         data = {
             "mobile_number": form.mobile_number.data,
             "first_name": form.first_name.data,
-            "password": form.password.data,
             "email": form.email.data,
-            "role": form.role.data  # Store selected role from the form
+            "password": form.password.data,
+            "role": selected_role
         }
+        try:
+            response = requests.post(
+                f"{ZTN_IAM_URL}/register",
+                json=data,
+                headers={"X-API-KEY": API_KEY, "Content-Type": "application/json"},
+                verify=False
+            )
+            if response.status_code == 201:
+                flash("User successfully registered!", "success")
+                return redirect(url_for("login"))
+            else:
+                error = response.json().get("error", "An unknown error occurred.")
+                flash(f"Registration failed: {error}", "danger")
+        except Exception:
+            flash("Failed to communicate with IAM service.", "danger")
 
-        # Send the registration request to ZTN-IAM
-        response = requests.post(
-            f"{ZTN_IAM_URL}/register", 
-            json=data,
-            headers={"X-API-KEY": "mohealthapikey987654", "Content-Type": "application/json"},
-            verify=False  # Disable SSL verification temporarily for local development
-        )
-        
-        # Check the response from ZTN-IAM
-        if response.status_code == 201:
-            flash("User successfully registered!", 'success')
-            return redirect(url_for('login'))
-        else:
-            error_message = response.json().get('error', 'An unknown error occurred.')
-            flash(f"Registration failed: {error_message}", 'danger')
-            return redirect(url_for('register'))
-
-    return render_template('auth/register.html', form=form)
+    return render_template("auth/register.html", form=form)
 
 
-   
+  
 # Route for login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    form = LoginForm()  # WTForms login form
-    if form.validate_on_submit():
+    if request.method == "POST":
+        identifier = request.form.get("email")  # your input name is 'email'
+        password = request.form.get("password")
+
+        print("🔐 Identifier:", identifier)
+        print("🔐 Password:", password)
+
         login_data = {
-            "identifier": form.username.data,
-            "password": form.password.data
+            "identifier": identifier,
+            "password": password
         }
-        print(f"Sending login data: {login_data}")  # Log data being sent to ZTN-IAM
-        
-        # Send login request to ZTN-IAM
+
         try:
             response = requests.post(
-                f"{ZTN_IAM_URL}/login", 
+                f"{ZTN_IAM_URL}/login",
                 json=login_data,
                 headers={"X-API-KEY": "mohealthapikey987654", "Content-Type": "application/json"},
-                verify=False  # Disable SSL verification temporarily
+                verify=False
             )
 
-            print(f"ZTN-IAM Response Status Code: {response.status_code}")  # Log status code
-            print(f"ZTN-IAM Response Body: {response.text}")  # Log raw response body
+            print("📡 IAM Response:", response.status_code, response.text)
 
             data = response.json()
+            if response.status_code == 200 and data.get("access_token"):
+                session["access_token"] = data["access_token"]
+                session["role"] = data.get("role")
+                session["user_id"] = data.get("user_id")
 
-            if response.status_code == 200:
-                if "error" in data:
-                    flash(f"Error: {data['error']}", 'danger')
-                    return redirect(url_for('login'))
+                # 🔐 TOTP Handling
+                if data.get("require_totp_setup"):
+                    return redirect(url_for("setup_totp"))  # Redirect to setup
 
-                if data.get("message") == "Login successful":
-                    access_token = data.get("access_token")
-                    role = data.get("role")  # Get role from ZTN-IAM response
-                    user_id = data.get("user_id")
-                
-                    session['access_token'] = access_token
-                    session['role'] = role
-                    session['user_id'] = user_id
+                if data.get("require_totp"):
+                    return redirect(url_for("verify_totp"))  # Redirect to verify
 
-                    if role == 'admin':
-                        return redirect(url_for('admin_dashboard'))
-                    elif role == 'doctor':
-                        return redirect(url_for('doctor_dashboard'))
-                    elif role == 'nurse':
-                        return redirect(url_for('nurse_dashboard'))
-                    else:
-                        flash('Role not recognized!', 'danger')
-                        return redirect(url_for('login'))
+                # ✅ Role-based redirect
+                role = data.get("role")
+                if role == "admin":
+                    return redirect(url_for("admin_dashboard"))
+                elif role == "doctor":
+                    return redirect(url_for("doctor_dashboard"))
+                elif role == "nurse":
+                    return redirect(url_for("nurse_dashboard"))
                 else:
-                    error_message = data.get('error', 'Invalid credentials. Please try again.')
-                    flash(error_message, 'danger')
-                    return redirect(url_for('login'))
+                    flash("Unknown role.", "danger")
+                    return redirect(url_for("login"))
+
             else:
-                flash(f"Unexpected response status code: {response.status_code}", 'danger')
-                return redirect(url_for('login'))
+                flash(data.get("error", "Login failed."), "danger")
+                return redirect(url_for("login"))
 
-        except requests.exceptions.RequestException as e:
-            print(f"Request exception: {e}")  # Log exception
-            flash("An error occurred while attempting to log in.", 'danger')
-            return redirect(url_for('login'))
+        except Exception as e:
+            print("❌ Exception:", e)
+            flash("Login error.", "danger")
+            return redirect(url_for("login"))
 
-    return render_template('auth/login.html', form=form)
+    return render_template("auth/login.html")
+
+
 
 # Route for dashboard (redirect after login)
 # Route for Admin Dashboard
@@ -231,6 +273,16 @@ def test_forgot_password():
     else:
         error_message = response.json().get('error', 'An unknown error occurred.')
         return jsonify({"error": error_message}), response.status_code
+
+@app.route("/setup-totp")
+def setup_totp():
+    return render_template("auth/setup_totp.html")
+
+
+@app.route("/verify-totp")
+def verify_totp():
+    return render_template("auth/verify_totp.html")  # We'll customize this too
+
 
 
 

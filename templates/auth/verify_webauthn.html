@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Verify Biometric Login{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+
+{% block body %}
+<div class="home-link-container">
+  <a href="{{ url_for('index') }}" class="home-link">&larr; Back to Home</a>
+</div>
+
+<div class="auth-container">
+  <h1>🔐 Verify Biometric Login</h1>
+  <p>Please verify your identity using your fingerprint or passkey to continue.</p>
+
+  <button id="verify-biometric" class="btn btn-success">Verify Now</button>
+
+  <div id="webauthn-status" style="margin-top: 15px; color: green;"></div>
+  <div id="webauthn-error" style="margin-top: 10px; color: red;"></div>
+</div>
+
+<script src="{{ url_for('static', filename='js/verify_webauthn.js') }}"></script>
+<script>
+  PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then((available) => {
+    if (!available) {
+      const status = document.getElementById("webauthn-status");
+      if (status) {
+        status.textContent = "⚠️ Biometric login not available on this device.";
+        status.style.color = "orange";
+      }
+      const verifyBtn = document.getElementById("verify-biometric");
+      if (verifyBtn) verifyBtn.style.display = "none";
+    }
+  });
+</script>
+{% endblock %}
