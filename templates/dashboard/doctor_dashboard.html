@@ -1,22 +1,42 @@
-<!-- templates/dashboard/doctor.html -->
 {% extends "base.html" %}
 
 {% block title %}Doctor Dashboard{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2 class="text-center">Doctor Dashboard</h2>
-    <div class="row">
-        <div class="col-md-6">
-            <h4>Patient Records</h4>
-            <p>View and update patient medical records.</p>
-            <a href="{{ url_for('view_patients') }}" class="btn btn-primary">View Patient Records</a>
+<div class="container mt-5">
+  <div class="text-center mb-4">
+    <h2 class="fw-bold">👨‍⚕️ Doctor Dashboard</h2>
+    <p class="text-muted">Access your tools to manage patient records and appointments.</p>
+  </div>
+
+  <div class="row g-4">
+    <!-- Patient Records Card -->
+    <div class="col-md-6">
+      <div class="card shadow-sm rounded-4 h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-3">
+            <i class="bi bi-folder2-open fs-3 text-primary me-3"></i>
+            <h5 class="card-title mb-0">Patient Records</h5>
+          </div>
+          <p class="card-text text-muted">View and update medical records of patients under your care.</p>
+          <a href="{{ url_for('view_patients') }}" class="btn btn-outline-primary w-100">View Records</a>
         </div>
-        <div class="col-md-6">
-            <h4>Appointments</h4>
-            <p>Manage your upcoming appointments with patients.</p>
-            <a href="{{ url_for('manage_appointments') }}" class="btn btn-primary">Manage Appointments</a>
-        </div>
+      </div>
     </div>
+
+    <!-- Appointments Card -->
+    <div class="col-md-6">
+      <div class="card shadow-sm rounded-4 h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-3">
+            <i class="bi bi-calendar-check fs-3 text-success me-3"></i>
+            <h5 class="card-title mb-0">Appointments</h5>
+          </div>
+          <p class="card-text text-muted">Manage your schedule and upcoming patient appointments.</p>
+          <a href="{{ url_for('manage_appointments') }}" class="btn btn-outline-success w-100">Manage Appointments</a>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}

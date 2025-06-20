@@ -225,7 +225,6 @@ def login():
 # Route for dashboard (redirect after login)
 # Route for Admin Dashboard
 @app.route('/admin/dashboard')
-@login_required
 def admin_dashboard():
     if session.get('role') != 'admin':
         flash("You do not have permission to access this page.", "danger")
@@ -234,7 +233,6 @@ def admin_dashboard():
 
 # Route for Doctor Dashboard
 @app.route('/doctor/dashboard')
-@login_required
 def doctor_dashboard():
     if session.get('role') != 'doctor':
         flash("You do not have permission to access this page.", "danger")
@@ -243,7 +241,6 @@ def doctor_dashboard():
 
 # Route for Nurse Dashboard
 @app.route('/nurse/dashboard')
-@login_required
 def nurse_dashboard():
     if session.get('role') != 'nurse':
         flash("You do not have permission to access this page.", "danger")
@@ -283,8 +280,43 @@ def setup_totp():
 def verify_totp():
     return render_template("auth/verify_totp.html")  # We'll customize this too
 
+@app.route('/patients/view')
+def view_patients():
+    return render_template('patients/view_patients.html')
 
+@app.route('/appointments/manage')
+def manage_appointments():
+    return render_template('records/manage_appointments.html')
 
+# View Appointments (linked from Nurse dashboard)
+@app.route('/appointments')
+def view_appointments():
+    # appointments = []  # Replace with actual query
+    return render_template('appointments/view.html')
+
+# View Patient Info (linked from Nurse dashboard)
+@app.route('/patients/info')
+def view_patient_details():
+    # patients = []  
+    return render_template('patients/details.html')
+
+# 👥 User Management 
+@app.route('/admin/users')
+# @admin_required
+def user_management():
+    return render_template("admin/user_management.html")
+
+# 📊 System Metrics 
+@app.route('/admin/metrics')
+# @admin_required
+def system_metrics():
+    return render_template("admin/system_metrics.html")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("You have been logged out successfully.", "success")
+    return redirect(url_for("login"))
 
 if __name__ == '__main__':
     app.run(debug=True, ssl_context=('certs/hospital_app.crt', 'certs/hospital_app.key'))

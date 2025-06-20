@@ -39,7 +39,7 @@
       {% if current_user %}
       <div class="ms-auto">
         <span class="text-white me-3">{{ current_user.email }}</span>
-        <a href="/logout" class="btn btn-outline-light btn-sm">Logout</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
       </div>
       {% endif %}
     </div>

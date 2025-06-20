@@ -1,50 +1,114 @@
-document.getElementById("verify-biometric").onclick = async () => {
-  const status = document.getElementById("webauthn-status");
-  const error = document.getElementById("webauthn-error");
-  status.textContent = "";
-  error.textContent = "";
+document.addEventListener("DOMContentLoaded", async () => {
+  const statusDiv = document.getElementById("webauthn-status");
+
+  // 🔧 Utility: Buffer → Base64URL
+  function bufferToBase64url(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let str = "";
+    for (let b of bytes) str += String.fromCharCode(b);
+    return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+
+  // 🔧 Utility: Base64URL → Buffer
+  function base64urlToBuffer(base64url) {
+    if (!base64url || typeof base64url !== "string") {
+      throw new Error("Invalid base64url input");
+    }
+    const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = base64.length % 4 ? 4 - (base64.length % 4) : 0;
+    const padded = base64 + "=".repeat(pad);
+    const binary = atob(padded);
+    const buffer = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      buffer[i] = binary.charCodeAt(i);
+    }
+    return buffer.buffer;
+  }
+
 
   try {
-    // Step 1: Fetch challenge
-    const res1 = await fetch("/auth/start-webauthn", { method: "POST" });
-    const data1 = await res1.json();
-    if (!res1.ok) throw new Error(data1.error || "Failed to start verification");
+    statusDiv.textContent = "⌛ Starting biometric verification...";
 
-    const options = data1.public_key;
-    options.challenge = Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0));
-    options.allowCredentials = options.allowCredentials.map(c => ({
+    // 🟢 Step 1: Fetch assertion options
+    const res = await fetch("/auth/begin-webauthn-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include" // ensures session is used
+    });
+
+    const result = await res.json();
+    if (!res.ok || !result.public_key || !result.public_key.challenge) {
+      throw new Error(result.error || "Invalid WebAuthn response from server.");
+    }
+
+    const publicKey = result.public_key;
+
+    // 🔁 Convert challenge & credential IDs
+    publicKey.challenge = base64urlToBuffer(publicKey.challenge);
+    publicKey.allowCredentials = (publicKey.allowCredentials || []).map(c => ({
       ...c,
-      id: Uint8Array.from(atob(c.id), c => c.charCodeAt(0))
+      id: base64urlToBuffer(c.id)
     }));
 
-    // Step 2: Get assertion
-    const assertion = await navigator.credentials.get({ publicKey: options });
+    console.log("🟢 WebAuthn assertion options ready:", publicKey);
 
-    const result = {
-      credentialId: btoa(String.fromCharCode(...new Uint8Array(assertion.rawId))),
-      authenticatorData: btoa(String.fromCharCode(...new Uint8Array(assertion.response.authenticatorData))),
-      clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(assertion.response.clientDataJSON))),
-      signature: btoa(String.fromCharCode(...new Uint8Array(assertion.response.signature))),
+    // 👆 Step 2: Prompt for fingerprint or USB key
+    const assertion = await navigator.credentials.get({ publicKey });
+
+    console.log("✅ WebAuthn assertion successful:", assertion);
+
+    // 🧾 Step 3: Build payload
+    const payload = {
+      credentialId: bufferToBase64url(assertion.rawId),
+      authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
+      clientDataJSON: bufferToBase64url(assertion.response.clientDataJSON),
+      signature: bufferToBase64url(assertion.response.signature),
       userHandle: assertion.response.userHandle
-        ? btoa(String.fromCharCode(...new Uint8Array(assertion.response.userHandle)))
+        ? bufferToBase64url(assertion.response.userHandle)
         : null
     };
 
-    // Step 3: Submit to backend
-    const res2 = await fetch("/auth/verify-webauthn", {
+    console.log("🛂 WebAuthn Assertion Payload:", payload);
+
+
+    const finalRes = await fetch("/auth/complete-webauthn-verification", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(result)
+      body: JSON.stringify(payload),
+      credentials: "include"
     });
 
-    const data2 = await res2.json();
-    if (!res2.ok) throw new Error(data2.error || "WebAuthn verification failed");
+    const finalResult = await finalRes.json();
+    if (!finalRes.ok) {
+      throw new Error(finalResult.error || "WebAuthn verification failed.");
+    }
 
-    // Success: redirect
-    status.textContent = "✅ Biometric verified successfully! Redirecting...";
-    window.location.href = data2.dashboard_url;
-
+    // 🎉 Success
+    statusDiv.textContent = "✅ Verified! Redirecting...";
+    statusDiv.style.color = "green";
+    window.location.href = finalResult.dashboard_url || "/";
   } catch (err) {
-    error.textContent = "❌ " + err.message;
+    let readableReason = "Unknown client-side WebAuthn error.";
+    switch (err.name) {
+      case "NotAllowedError":
+        readableReason = "User cancelled or didn’t respond to WebAuthn prompt.";
+        break;
+      case "AbortError":
+        readableReason = "WebAuthn operation was aborted.";
+        break;
+      case "SecurityError":
+        readableReason = "WebAuthn blocked by browser or context.";
+        break;
+      case "InvalidStateError":
+        readableReason = "Authenticator not ready or already used.";
+        break;
+      case "UnknownError":
+        readableReason = "Unknown browser error.";
+        break;
+    }
+
+    console.warn(`❌ ${readableReason} (${err.name || ""}: ${err.message || ""})`);
+    statusDiv.textContent = "❌ " + readableReason;
+    statusDiv.style.color = "red";
   }
-};
+});

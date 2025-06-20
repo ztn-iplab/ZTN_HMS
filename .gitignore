@@ -1,0 +1,6 @@
+# .gitignore
+localhost.localdomain.crt
+localhost.localdomain.key
+*.pem
+*.crt
+*.key

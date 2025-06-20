@@ -1,34 +1,22 @@
+<!-- templates/auth/verify_webauthn.html -->
 {% extends "base.html" %}
-{% block title %}Verify Biometric Login{% endblock %}
-{% block body_class %}auth-page{% endblock %}
+{% block title %}Verify with Passkey{% endblock %}
 
-{% block body %}
-<div class="home-link-container">
-  <a href="{{ url_for('index') }}" class="home-link">&larr; Back to Home</a>
+{% block content %}
+<div class="container py-5 d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+  <div class="card shadow-lg p-4" style="max-width: 500px; width: 100%;">
+    <h4 class="text-center text-success mb-3">🔐 Verify Your Identity</h4>
+    <p class="text-center">Use your registered fingerprint, FaceID, or passkey to continue.</p>
+
+    <div class="d-grid mt-4">
+      <button class="btn btn-success" id="verify-passkey-btn">Verify Now</button>
+    </div>
+
+    <div class="text-center mt-4" id="webauthn-status">
+      <small class="text-muted">Waiting for your passkey...</small>
+    </div>
+  </div>
 </div>
-
-<div class="auth-container">
-  <h1>🔐 Verify Biometric Login</h1>
-  <p>Please verify your identity using your fingerprint or passkey to continue.</p>
-
-  <button id="verify-biometric" class="btn btn-success">Verify Now</button>
-
-  <div id="webauthn-status" style="margin-top: 15px; color: green;"></div>
-  <div id="webauthn-error" style="margin-top: 10px; color: red;"></div>
-</div>
-
+<!-- <script>const accessToken = "{{ access_token }}";</script> -->
 <script src="{{ url_for('static', filename='js/verify_webauthn.js') }}"></script>
-<script>
-  PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then((available) => {
-    if (!available) {
-      const status = document.getElementById("webauthn-status");
-      if (status) {
-        status.textContent = "⚠️ Biometric login not available on this device.";
-        status.style.color = "orange";
-      }
-      const verifyBtn = document.getElementById("verify-biometric");
-      if (verifyBtn) verifyBtn.style.display = "none";
-    }
-  });
-</script>
 {% endblock %}
