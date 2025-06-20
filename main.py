@@ -166,8 +166,6 @@ def login():
         identifier = request.form.get("email")  # your input name is 'email'
         password = request.form.get("password")
 
-        print("🔐 Identifier:", identifier)
-        print("🔐 Password:", password)
 
         login_data = {
             "identifier": identifier,
@@ -181,8 +179,6 @@ def login():
                 headers={"X-API-KEY": "mohealthapikey987654", "Content-Type": "application/json"},
                 verify=False
             )
-
-            print("📡 IAM Response:", response.status_code, response.text)
 
             data = response.json()
             if response.status_code == 200 and data.get("access_token"):
