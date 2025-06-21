@@ -70,9 +70,6 @@ def verify_totp():
             verify=False
         )
 
-        print("🔎 ZTN-IAM Status:", response.status_code)
-        print("📦 ZTN-IAM Raw Response:", response.text)
-
         data = response.json()
 
         if response.status_code == 200:

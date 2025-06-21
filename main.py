@@ -13,6 +13,8 @@ from werkzeug.security import generate_password_hash
 import requests
 import certifi
 from routes.auth import auth_bp
+from models import User, UserRole
+from forms import RegisterForm
 
 # === App Configuration ===
 app = Flask(__name__)
@@ -33,37 +35,6 @@ login_manager.login_view = "login"
 ZTN_IAM_URL = "https://localhost.localdomain/api/v1/auth"
 API_KEY = "mohealthapikey987654"
 
-# === Models ===
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=False)
-    tenant_id = db.Column(db.Integer, nullable=False)
-
-    def __repr__(self):
-        return f"<User {self.username}>"
-
-class UserRole(db.Model):
-    __tablename__ = 'user_roles'
-    id = db.Column(db.Integer, primary_key=True)
-    role_name = db.Column(db.String(50), nullable=False)
-    permissions = db.Column(db.JSON)
-    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=True)
-
-    __table_args__ = (
-        db.UniqueConstraint('role_name', 'tenant_id', name='uq_role_per_tenant'),
-        {'extend_existing': True},
-    )
-
-# === Forms ===
-class RegisterForm(FlaskForm):
-    mobile_number = StringField('Mobile Number', validators=[DataRequired()])
-    first_name = StringField('First Name', validators=[DataRequired()])
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    role = SelectField('Role', choices=[], validators=[DataRequired()])
-    custom_role = StringField('Custom Role')
 
 # === User Loader ===
 @login_manager.user_loader
@@ -288,13 +259,13 @@ def manage_appointments():
 @app.route('/appointments')
 def view_appointments():
     # appointments = []  # Replace with actual query
-    return render_template('appointments/view.html')
+    return render_template('records/view.html')
 
 # View Patient Info (linked from Nurse dashboard)
 @app.route('/patients/info')
 def view_patient_details():
     # patients = []  
-    return render_template('patients/details.html')
+    return render_template('patients/view_patients.html')
 
 # 👥 User Management 
 @app.route('/admin/users')
@@ -311,8 +282,17 @@ def system_metrics():
 @app.route("/logout")
 def logout():
     session.clear()
-    flash("You have been logged out successfully.", "success")
     return redirect(url_for("login"))
+
+@app.context_processor
+def inject_current_endpoint():
+    return {"current_endpoint": request.endpoint}
+
+# "During local development, self-signed SSL certificates were used to simulate secure HTTPS communication. SSL verification warnings were suppressed for local testing only.
+#  In production, we recommend strict SSL enforcement and certificate validation for secure API communication between client tenants and the ZTN-IAM service." 
+
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 if __name__ == '__main__':
     app.run(debug=True, ssl_context=('certs/hospital_app.crt', 'certs/hospital_app.key'))
