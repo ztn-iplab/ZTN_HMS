@@ -15,6 +15,7 @@ import certifi
 from routes.auth import auth_bp
 from models import User, UserRole
 from forms import RegisterForm
+from datetime import timedelta
 
 # === App Configuration ===
 app = Flask(__name__)
@@ -214,30 +215,6 @@ def nurse_dashboard():
         return redirect(url_for('login'))
     return render_template('dashboard/nurse_dashboard.html')
 
-# Route to test forgot-password functionality
-@app.route('/test-forgot-password', methods=['POST'])
-def test_forgot_password():
-    data = request.get_json()
-    identifier = data.get('identifier')
-
-    if not identifier:
-        return jsonify({"error": "Identifier is required."}), 400
-
-    # Proceed with logic to send a reset request to ZTN-IAM
-    response = requests.post(
-        f"{ZTN_IAM_URL}/forgot-password",
-        json={"identifier": identifier},
-        headers={"X-API-KEY": "mohealthapikey987654", "Content-Type": "application/json"},
-        verify=False  # Disable SSL verification temporarily for local development
-    )
-    
-    # Handle ZTN-IAM Response
-    if response.status_code == 200:
-        return jsonify({"message": "Password reset email sent."}), 200
-    else:
-        error_message = response.json().get('error', 'An unknown error occurred.')
-        return jsonify({"error": error_message}), response.status_code
-
 @app.route("/setup-totp")
 def setup_totp():
     return render_template("auth/setup_totp.html")
@@ -269,13 +246,12 @@ def view_patient_details():
 
 # 👥 User Management 
 @app.route('/admin/users')
-# @admin_required
 def user_management():
-    return render_template("admin/user_management.html")
+    return render_template("admin/user_management.html", users=[])
 
 # 📊 System Metrics 
 @app.route('/admin/metrics')
-# @admin_required
+
 def system_metrics():
     return render_template("admin/system_metrics.html")
 

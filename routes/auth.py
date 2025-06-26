@@ -211,7 +211,7 @@ def complete_webauthn_verification():
 
     if not access_token:
         return jsonify({"error": "Missing access token"}), 401
-    
+
     assertion = request.get_json()
 
     payload = {
@@ -230,12 +230,247 @@ def complete_webauthn_verification():
             },
             verify=False
         )
+
+        result = res.json()
+       
+        # ✅ NEW: Save final access token if WebAuthn verification is successful
+        if res.status_code == 200 and result.get("access_token"):
+            session["access_token"] = result.get("access_token")
+
+            session["access_token"] = result["access_token"]
+            session.pop("webauthn_assertion_state", None)
+            session.pop("assertion_user_id", None)
+
+        return jsonify(result), res.status_code
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# =========================
+#          FallBacks
+# =========================
+
+@auth_bp.route("/request-totp-reset", methods=["GET", "POST"])
+def request_totp_reset():
+    if request.method == "GET":
+        return render_template("auth/request_totp_reset.html")
+
+    # POST: handle identifier submission from JS
+    if request.content_type != "application/json":
+        return jsonify({"error": "Unsupported Media Type"}), 415
+
+    data = request.get_json()
+    identifier = data.get("identifier")
+
+    if not identifier:
+        return jsonify({"error": "Missing identifier."}), 400
+
+    try:
+        session_obj = requests.Session()
+
+        # Include IAM session cookies if available
+        if "iam_reset_cookies" in session:
+            session_obj.cookies = requests.utils.cookiejar_from_dict(session["iam_reset_cookies"])
+
+        response = session_obj.post(
+            f"{ZTN_IAM_URL}/request-totp-reset",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Content-Type": "application/json"
+            },
+            json={"identifier": identifier},
+            verify=False
+        )
+
+        session["iam_reset_cookies"] = requests.utils.dict_from_cookiejar(session_obj.cookies)
+
+        return jsonify(response.json()), response.status_code
+
+    except Exception as e:
+        return jsonify({"error": f"Exception occurred: {str(e)}"}), 500
+
+
+@auth_bp.route("/reset-totp", methods=["GET"])
+def reset_totp():
+    token = request.args.get("token")
+    if not token:
+        flash("Invalid or expired TOTP reset link.", "danger")
+        return redirect(url_for("auth.request_totp_reset"))
+    return render_template("auth/verify_totp_reset.html", token=token)
+
+
+@auth_bp.route("/verify-fallback-totp", methods=["POST"])
+def proxy_verify_fallback_totp():
+    data = request.get_json()
+
+    try:
+        session_obj = requests.Session()
+
+        # 🛡️ Forward IAM session cookies
+        if "iam_reset_cookies" in session:
+            session_obj.cookies = requests.utils.cookiejar_from_dict(session["iam_reset_cookies"])
+
+        response = session_obj.post(
+            f"{ZTN_IAM_URL}/verify-totp-reset",
+            headers={"X-API-KEY": API_KEY, "Content-Type": "application/json"},
+            json=data,
+            verify=False
+        )
+
+        # 🔁 Update cookies
+        session["iam_reset_cookies"] = requests.utils.dict_from_cookiejar(session_obj.cookies)
+
+        return jsonify(response.json()), response.status_code
+
+    except Exception as e:
+        return jsonify({"error": f"Exception occurred: {str(e)}"}), 500
+
+
+
+@auth_bp.route("/reset-webauthn-begin", methods=["POST"])
+def reset_webauthn_begin():
+    data = request.get_json()
+    token = data.get("token")
+    try:
+        session_obj = requests.Session()
+        res = session_obj.post(
+            f"{ZTN_IAM_URL}/webauthn/reset-assertion-begin",
+            headers={"X-API-KEY": API_KEY, "Content-Type": "application/json"},
+            json={"token": token},
+            verify=False
+        )
+
+        # 🔐 Store IAM session cookies for reuse
+        session["iam_reset_cookies"] = requests.utils.dict_from_cookiejar(session_obj.cookies)
+
         return jsonify(res.json()), res.status_code
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@auth_bp.route("/reset-webauthn-complete", methods=["POST"])
+def reset_webauthn_complete():
+    data = request.get_json()
+    try:
+        session_obj = requests.Session()
+
+        # 🔁 Restore existing cookies from /begin
+        if "iam_reset_cookies" in session:
+            session_obj.cookies = requests.utils.cookiejar_from_dict(session["iam_reset_cookies"])
+
+        # 🌐 Post to ZTN-IAM
+        res = session_obj.post(
+            f"{ZTN_IAM_URL}/webauthn/reset-assertion-complete",
+            headers={"X-API-KEY": API_KEY, "Content-Type": "application/json"},
+            json=data,
+            verify=False
+        )
+
+        # ✅ Save updated IAM session cookies (important!)
+        session["iam_reset_cookies"] = requests.utils.dict_from_cookiejar(session_obj.cookies)
+
+        return jsonify(res.json()), res.status_code
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 
+@auth_bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "GET":
+        return render_template("auth/forgot_password.html")
+
+    identifier = request.form.get("identifier")
+    if not identifier:
+        flash("Please provide your email or mobile number.", "warning")
+        return redirect(url_for("auth.forgot_password"))
+
+    try:
+        response = requests.post(
+            "https://localhost.localdomain/api/v1/auth/forgot-password",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Content-Type": "application/json"
+            },
+            json={
+                "identifier": identifier,
+                "redirect_url": "https://localhost.localdomain:5000/auth/reset-password"  #
+            },
+            verify=False
+        )
+
+        if response.status_code == 200:
+            flash("✔️ Reset link sent. Please check your email.", "success")
+            return redirect(url_for("login"))
+        else:
+            error = response.json().get("error", "Reset request failed.")
+            flash(f"❌ {error}", "danger")
+            return redirect(url_for("auth.forgot_password"))
+
+    except Exception as e:
+        flash(f"⚠️ Error contacting IAM: {str(e)}", "danger")
+        return redirect(url_for("auth.forgot_password"))
 
 
+
+@auth_bp.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    if request.method == "GET":
+        token = request.args.get("token")
+        if not token:
+            flash("Invalid or expired reset link.", "danger")
+            return redirect(url_for("auth.forgot_password"))
+        return render_template("auth/reset_password.html", token=token)
+
+    # POST: handle password reset from JS
+    if request.content_type != "application/json":
+        return jsonify({"error": "Unsupported Media Type"}), 415
+
+    data = request.get_json()
+    token = data.get("token")
+    new_password = data.get("new_password")
+    confirm_password = data.get("confirm_password")
+
+    if not new_password or not confirm_password or not token:
+        return jsonify({"error": "Missing required fields."}), 400
+
+    if new_password != confirm_password:
+        return jsonify({"error": "Passwords do not match."}), 400
+
+    try:
+        session_obj = requests.Session()
+
+        # ✅ Reuse IAM session cookies
+        if "iam_reset_cookies" in session:
+            session_obj.cookies = requests.utils.cookiejar_from_dict(session["iam_reset_cookies"])
+
+        response = session_obj.post(
+            f"{ZTN_IAM_URL}/reset-password",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Content-Type": "application/json"
+            },
+            json={
+                "token": token,
+                "new_password": new_password,
+                "confirm_password": confirm_password
+            },
+            verify=False
+        )
+
+        # 🔁 Refresh cookies in case IAM issues new ones
+        session["iam_reset_cookies"] = requests.utils.dict_from_cookiejar(session_obj.cookies)
+
+        if response.status_code == 202:
+            return jsonify(response.json()), 202
+        elif response.status_code == 200:
+            return jsonify({"message": "Your password has been successfully reset. You may now log in with your new credentials."}), 200
+        else:
+            return jsonify({"error": response.json().get("error", "Password reset failed.")}), response.status_code
+
+    except Exception as e:
+        return jsonify({"error": f"Exception occurred: {str(e)}"}), 500
 
