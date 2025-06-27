@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Request WebAuthn Reset - ZTN Hospital{% endblock %}
+
+{% block content %}
+<div class="container py-5 d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+  <div class="card shadow-lg p-4" style="max-width: 480px; width: 100%;">
+    <h4 class="text-center text-danger mb-3">🔐 Request WebAuthn Reset</h4>
+    <p class="text-center text-muted mb-4">
+      Lost access to your registered passkey? No problem. Enter your email or phone number to begin the reset process.
+    </p>
+
+    <form id="request-webauthn-reset-form" method="POST" novalidate>
+      <div class="form-group mb-3">
+        <label for="identifier" class="form-label">Email or Phone Number</label>
+        <input type="text" class="form-control" id="identifier" name="identifier" placeholder="Enter your email or phone" required />
+      </div>
+      <div class="d-grid">
+        <button type="submit" class="btn btn-danger">Send Reset Link</button>
+      </div>
+    </form>
+
+    <div class="text-center mt-3">
+      <a href="{{ url_for('login') }}" class="auth-link">← Back to Login</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/request_webauthn_reset.js') }}"></script>
+{% endblock %}

@@ -4,9 +4,40 @@
 {% block title %}Welcome to ZTN Hospital{% endblock %}
 
 {% block content %}
+<!-- Red Navigation Bar with Hospital Icon -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-danger fixed-top shadow">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
+      <i class="fas fa-hospital-alt me-2"></i> ZTN Hospital
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link active" href="#hero">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#services">Services</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#about">About Us</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#contact">Contact</a>
+        </li>
+        <li class="nav-item">
+          <a class="btn btn-outline-light btn-sm ms-2" href="{{ url_for('login') }}">Login</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
 <!-- Hero Section -->
-<section class="hero bg-danger text-white text-center py-5">
-  <div class="container">
+<section id="hero" class="hero bg-danger text-white text-center py-5" style="margin-top: 56px;">
+  <div class="container-lg">
     <h1 class="display-3 fw-bold">Welcome to ZTN Hospital</h1>
     <p class="lead">A leading provider of healthcare services, leveraging Zero Trust security for a better tomorrow.</p>
     <a href="{{ url_for('login') }}" class="btn btn-light btn-lg mt-3">Login to Your Account</a>
@@ -14,10 +45,10 @@
 </section>
 
 <!-- About Us Section -->
-<section class="about py-5">
-  <div class="container">
+<section id="about" class="about py-5">
+  <div class="container-lg">
     <h2 class="text-center mb-4">About Us</h2>
-    <div class="row">
+    <div class="row align-items-center">
       <div class="col-md-6">
         <p class="lead">
           ZTN Hospital provides exceptional healthcare services, making use of advanced technologies and secure solutions. Our Zero Trust network ensures that patient data is always protected.
@@ -31,34 +62,34 @@
 </section>
 
 <!-- Services Section -->
-<section class="services bg-light py-5">
-  <div class="container">
+<section id="services" class="services bg-light py-5">
+  <div class="container-lg">
     <h2 class="text-center mb-4">Our Services</h2>
-    <div class="row">
+    <div class="row g-4">
       <div class="col-md-4">
-        <div class="card shadow-sm">
+        <div class="card h-100 shadow-sm">
           <img src="{{ url_for('static', filename='img/service1.avif') }}" alt="Medical Consultation" class="card-img-top">
           <div class="card-body">
             <h5 class="card-title">Medical Consultations</h5>
-            <p class="card-text">Our experienced doctors provide expert consultations across various specialties to meet your healthcare needs.</p>
+            <p class="card-text">Expert consultations across various specialties to meet your healthcare needs.</p>
           </div>
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card shadow-sm">
+        <div class="card h-100 shadow-sm">
           <img src="{{ url_for('static', filename='img/service2.avif') }}" alt="Emergency Services" class="card-img-top">
           <div class="card-body">
             <h5 class="card-title">Emergency Services</h5>
-            <p class="card-text">Available 24/7, our emergency services team is always ready to handle any medical emergency with care and efficiency.</p>
+            <p class="card-text">Available 24/7 to handle any medical emergency with care and efficiency.</p>
           </div>
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card shadow-sm">
+        <div class="card h-100 shadow-sm">
           <img src="{{ url_for('static', filename='img/service3.avif') }}" alt="Specialist Care" class="card-img-top">
           <div class="card-body">
             <h5 class="card-title">Specialist Care</h5>
-            <p class="card-text">We have a wide range of specialists offering advanced treatment options for various conditions.</p>
+            <p class="card-text">Advanced treatment options delivered by top specialists.</p>
           </div>
         </div>
       </div>
@@ -66,4 +97,12 @@
   </div>
 </section>
 
+<!-- Contact Section -->
+<section id="contact" class="contact py-5">
+  <div class="container-lg text-center">
+    <h2 class="mb-4">Contact Us</h2>
+    <p class="lead">Reach out for appointments, inquiries, or partnerships.</p>
+    <p><i class="bi bi-envelope-fill"></i> contact@ztnhospital.org | <i class="bi bi-telephone-fill"></i> +250 123 456 789</p>
+  </div>
+</section>
 {% endblock %}

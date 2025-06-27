@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
         backgroundColor: "#43a047"
       }).showToast();
 
-      setTimeout(() => window.location.href = "/api/auth/login_form", 2000);
+      setTimeout(() => window.location.href = "/login", 2000);
 
     } catch (err) {
       console.error("WebAuthn Error:", err);

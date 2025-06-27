@@ -15,7 +15,17 @@
     <div class="text-center mt-4" id="webauthn-status">
       <small class="text-muted">Waiting for your passkey...</small>
     </div>
+    <div style="margin-top: 20px; text-align: center;">
+    <p>
+      If you've lost access to your passkey or device, 
+      <a href="{{ url_for('auth.request_webauthn_reset') }}" style="color: #007bff; text-decoration: underline;">
+        click here
+      </a> to reset it and enroll a new one.
+    </p>
   </div>
+  </div>
+   <!-- ✨ WebAuthn Reset Link (if needed) -->
+  
 </div>
 <!-- <script>const accessToken = "{{ access_token }}";</script> -->
 <script src="{{ url_for('static', filename='js/verify_webauthn.js') }}"></script>

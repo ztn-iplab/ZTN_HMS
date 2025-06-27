@@ -279,7 +279,10 @@ def request_totp_reset():
                 "X-API-KEY": API_KEY,
                 "Content-Type": "application/json"
             },
-            json={"identifier": identifier},
+            json={
+                "identifier": identifier,
+                "redirect_url": "https://localhost.localdomain:5000/auth/reset-totp"  #
+            },
             verify=False
         )
 
@@ -473,4 +476,65 @@ def reset_password():
 
     except Exception as e:
         return jsonify({"error": f"Exception occurred: {str(e)}"}), 500
+
+# Resetting WebAuthn
+@auth_bp.route("/request-webauthn-reset", methods=["GET", "POST"])
+def request_webauthn_reset():
+    if request.method == "GET":
+        return render_template("auth/request_webauthn_reset.html")
+
+    # POST: handle request submission
+    data = request.get_json()
+    identifier = data.get("identifier")
+
+    if not identifier:
+        return jsonify({"error": "Email or phone number is required."}), 400
+
+    try:
+        res = requests.post(
+            f"{ZTN_IAM_URL}/out-request-webauthn-reset",
+            headers={"X-API-KEY": API_KEY, "Content-Type": "application/json"},
+            
+            json={
+                "identifier": identifier,
+                "redirect_url": "https://localhost.localdomain:5000/auth/verify-webauthn-reset"
+            },
+            verify=False
+        )
+        return jsonify(res.json()), res.status_code
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@auth_bp.route("/verify-webauthn-reset", methods=["GET"])
+def verify_webauthn_reset_page():
+    token = request.args.get("token")
+    if not token:
+        flash("Invalid or expired reset link.", "danger")
+        return redirect(url_for("auth.login"))
+
+    return render_template("auth/verify_webauthn_reset.html", token=token)
+
+@auth_bp.route("/verify-webauthn-reset", methods=["POST"])
+def verify_webauthn_reset_action():
+    data = request.get_json()
+    token = data.get("token")
+    password = data.get("password")
+    totp = data.get("totp")
+
+    if not token or not password or not totp:
+        return jsonify({"error": "All fields are required."}), 400
+
+    try:
+        res = requests.post(
+            f"{ZTN_IAM_URL}/out-verify-webauthn-reset/{token}",
+            headers={"X-API-KEY": API_KEY, "Content-Type": "application/json"},
+            json={"password": password, "totp": totp},
+            verify=False
+        )
+        return jsonify(res.json()), res.status_code
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
