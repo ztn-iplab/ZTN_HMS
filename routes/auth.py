@@ -538,3 +538,159 @@ def verify_webauthn_reset_action():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+# User Management
+# 🔐 Get all users under this tenant
+@auth_bp.route("/tenant-users", methods=["GET"])
+def get_tenant_users():
+    try:
+        access_token_cookie = request.cookies.get("access_token_cookie")
+        if not access_token_cookie:
+            return jsonify({"error": "Missing access token cookie"}), 401
+
+        session_obj = requests.Session()
+        res = session_obj.get(
+            f"{ZTN_IAM_URL}/tenant/users",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Cookie": f"access_token_cookie={access_token_cookie}",
+                "Content-Type": "application/json"
+            },
+            verify=False
+        )
+        return jsonify(res.json()), res.status_code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
+# 📌 Get tenant roles
+@auth_bp.route("/tenant-roles", methods=["GET"])
+def get_tenant_roles():
+    try:
+        access_token_cookie = request.cookies.get("access_token_cookie")
+        if not access_token_cookie:
+            return jsonify({"error": "Missing access token cookie"}), 401
+
+        session_obj = requests.Session()
+        res = session_obj.get(
+            f"{ZTN_IAM_URL}/tenant/roles",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Cookie": f"access_token_cookie={access_token_cookie}",
+                "Content-Type": "application/json"
+            },
+            verify=False
+        )
+
+        iam_response = res.json()
+        return jsonify({"roles": iam_response}), res.status_code  # ✅ Wrap it under "roles"
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 🆕 Register a new tenant user
+@auth_bp.route("/tenant-users", methods=["POST"])
+def register_tenant_user():
+    try:
+        data = request.get_json()
+        access_token_cookie = request.cookies.get("access_token_cookie")
+
+        if not access_token_cookie:
+            return jsonify({"error": "Missing access token cookie"}), 401
+
+        session_obj = requests.Session()
+        res = session_obj.post(
+            f"{ZTN_IAM_URL}/tenant/users",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Cookie": f"access_token_cookie={access_token_cookie}",
+                "Content-Type": "application/json"
+            },
+            json=data,
+            verify=False
+        )
+        return jsonify(res.json()), res.status_code
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
+# ✏️ Edit a tenant user
+@auth_bp.route("/tenant-users/<int:user_id>", methods=["PUT"])
+def update_tenant_user(user_id):
+    try:
+        data = request.get_json()
+        access_token_cookie = request.cookies.get("access_token_cookie")
+
+        if not access_token_cookie:
+            return jsonify({"error": "Missing access token cookie"}), 401
+
+        session_obj = requests.Session()
+        res = session_obj.put(
+            f"{ZTN_IAM_URL}/tenant/users/{user_id}",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Cookie": f"access_token_cookie={access_token_cookie}",
+                "Content-Type": "application/json"
+            },
+            json=data,
+            verify=False
+        )
+        return jsonify(res.json()), res.status_code
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
+# ❌ Delete a tenant user
+@auth_bp.route("/tenant-users/<int:user_id>", methods=["DELETE"])
+def delete_tenant_user(user_id):
+    try:
+        access_token_cookie = request.cookies.get("access_token_cookie")
+
+        if not access_token_cookie:
+            return jsonify({"error": "Missing access token cookie"}), 401
+
+        session_obj = requests.Session()
+        res = session_obj.delete(
+            f"{ZTN_IAM_URL}/tenant/users/{user_id}",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Cookie": f"access_token_cookie={access_token_cookie}",
+                "Content-Type": "application/json"
+            },
+            verify=False
+        )
+        return jsonify(res.json()), res.status_code
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# 👤 Get single tenant user
+@auth_bp.route("/tenant-users/<int:user_id>", methods=["GET"])
+def get_single_tenant_user(user_id):
+    try:
+        access_token_cookie = request.cookies.get("access_token_cookie")
+
+        if not access_token_cookie:
+            return jsonify({"error": "Missing access token cookie"}), 401
+
+        session_obj = requests.Session()
+        res = session_obj.get(
+            f"{ZTN_IAM_URL}/tenant/users/{user_id}",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Cookie": f"access_token_cookie={access_token_cookie}",
+                "Content-Type": "application/json"
+            },
+            verify=False
+        )
+
+        return jsonify(res.json()), res.status_code
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

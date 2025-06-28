@@ -43,16 +43,15 @@
 <body>
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-custom">
-    <div class="container">
-      <a class="navbar-brand" href="/">🏥 ZTN Hospital</a>
-      {% if current_user and current_endpoint and 'dashboard' in current_endpoint %}
-      <div class="ms-auto">
-        <span class="text-white me-3">{{ current_user.email }}</span>
-        <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
-      </div>
-      {% endif %}
+  <div class="container">
+    <a class="navbar-brand" href="/">🏥 ZTN Hospital</a>
+    {% if session.get("access_token") %}
+    <div class="ms-auto">
+      <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
     </div>
-  </nav>
+    {% endif %}
+  </div>
+</nav>
 
   <!-- Page Content -->
   <main class="container">
