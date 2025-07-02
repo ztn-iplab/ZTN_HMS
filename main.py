@@ -181,7 +181,7 @@ def user_management():
 @app.route('/admin/metrics')
 
 def system_metrics():
-    if session.get('role') != 'doctor':
+    if session.get('role') != 'admin':
         flash("You do not have permission to access this page.", "danger")
         return redirect(url_for('login'))
     return render_template("admin/system_metrics.html")

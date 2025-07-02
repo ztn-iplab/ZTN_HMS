@@ -562,7 +562,30 @@ def get_tenant_users():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@auth_bp.route("/tenant-roles", methods=["POST"])
+def proxy_create_tenant_role():
+    try:
+        data = request.get_json()
+        access_token_cookie = request.cookies.get("access_token_cookie")
 
+        if not access_token_cookie:
+            return jsonify({"error": "Missing access token cookie"}), 401
+
+        session_obj = requests.Session()
+        res = session_obj.post(
+            f"{ZTN_IAM_URL}/tenant/roles",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Cookie": f"access_token_cookie={access_token_cookie}",
+                "Content-Type": "application/json"
+            },
+            json=data,
+            verify=False
+        )
+        return jsonify(res.json()), res.status_code
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # 📌 Get tenant roles
 @auth_bp.route("/tenant-roles", methods=["GET"])
@@ -692,5 +715,164 @@ def get_single_tenant_user(user_id):
 
         return jsonify(res.json()), res.status_code
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Refreshing token:
+@auth_bp.route("/refresh", methods=["POST"])
+def hospital_token_refresh():
+    refresh_token_cookie = request.cookies.get("refresh_token_cookie")
+
+    if not refresh_token_cookie:
+        return jsonify({"error": "Missing refresh token"}), 401
+
+    # 🛰️ Forward request to ZTN-IAM
+    res = requests.post(
+        f"{ZTN_IAM_URL}/refresh",
+        cookies={"refresh_token_cookie": refresh_token_cookie},
+        verify=False,
+        headers={"X-API-KEY": API_KEY}
+    )
+
+    if res.status_code == 200:
+        new_access_token = res.json().get("access_token")
+        resp = jsonify({"msg": "refreshed"})
+        set_access_cookies(resp, new_access_token)
+        return resp
+    else:
+        return jsonify({"error": "Token refresh failed"}), 401
+
+# Settings
+
+@auth_bp.route("/tenant-settings-page")
+def tenant_settings():
+    return render_template("admin/tenant_settings.html")
+
+@auth_bp.route("/tenant-settings", methods=["GET"])
+def proxy_get_tenant_settings():
+    try:
+        access_token_cookie = request.cookies.get("access_token_cookie")
+        if not access_token_cookie:
+            return jsonify({"error": "Missing access token cookie"}), 401
+
+        res = requests.get(
+            f"{ZTN_IAM_URL}/tenant-settings",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Cookie": f"access_token_cookie={access_token_cookie}",
+                "Content-Type": "application/json"
+            },
+            verify=False
+        )
+        return jsonify(res.json()), res.status_code
+    except Exception as e:
+        return jsonify({"error": f"Internal error: {str(e)}"}), 500
+
+
+@auth_bp.route("/change-plan", methods=["POST"])
+def proxy_change_plan():
+    try:
+        access_token_cookie = request.cookies.get("access_token_cookie")
+        if not access_token_cookie:
+            return jsonify({"error": "Missing access token cookie"}), 401
+
+        data = request.get_json(force=True)
+
+        res = requests.post(
+            f"{ZTN_IAM_URL}/change-plan",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Cookie": f"access_token_cookie={access_token_cookie}",
+                "Content-Type": "application/json"
+            },
+            json=data,
+            verify=False
+        )
+        return jsonify(res.json()), res.status_code
+    except Exception as e:
+        return jsonify({"error": f"Internal error: {str(e)}"}), 500
+
+# System Metrics
+@auth_bp.route("/system-metrics", methods=["GET"])
+def proxy_system_metrics():
+    try:
+        access_token_cookie = request.cookies.get("access_token_cookie")
+        if not access_token_cookie:
+            return jsonify({"error": "Missing access token cookie"}), 401
+
+        res = requests.get(
+            f"{ZTN_IAM_URL}/tenant/system-metrics",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Cookie": f"access_token_cookie={access_token_cookie}"
+            },
+            verify=False
+        )
+        return jsonify(res.json()), res.status_code
+    except Exception as e:
+        return jsonify({"error": f"Internal error: {str(e)}"}), 500
+
+@auth_bp.route("/trust-policy", methods=["GET"])
+def get_trust_policy():
+    try:
+        access_token = request.cookies.get("access_token_cookie")
+        if not access_token:
+            return jsonify({"error": "Missing access token cookie"}), 401
+
+        res = requests.get(
+            f"{ZTN_IAM_URL}/tenant/trust-policy",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Cookie": f"access_token_cookie={access_token}",
+                "Content-Type": "application/json"
+            },
+            verify=False
+        )
+        return jsonify(res.json()), res.status_code
+    except Exception as e:
+        return jsonify({"error": f"Internal error: {str(e)}"}), 500
+
+@auth_bp.route("/trust-policy/upload", methods=["POST"])
+def upload_trust_policy():
+    try:
+        access_token = request.cookies.get("access_token_cookie")
+        if not access_token:
+            return jsonify({"error": "Missing access token cookie"}), 401
+
+        if "file" not in request.files:
+            return jsonify({"error": "No file uploaded"}), 400
+
+        file = request.files["file"]
+
+        res = requests.post(
+            f"{ZTN_IAM_URL}/tenant/trust-policy/upload",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Cookie": f"access_token_cookie={access_token}"
+            },
+            files={"file": (file.filename, file.stream, file.content_type)},
+            verify=False
+        )
+        return jsonify(res.json()), res.status_code
+    except Exception as e:
+        return jsonify({"error": f"Internal error: {str(e)}"}), 500
+
+@auth_bp.route("/trust-policy/clear", methods=["DELETE"])
+def proxy_clear_trust_policy():
+    try:
+        access_token_cookie = request.cookies.get("access_token_cookie")
+        if not access_token_cookie:
+            return jsonify({"error": "Missing access token cookie"}), 401
+
+        res = requests.delete(
+            f"{ZTN_IAM_URL}/tenant/trust-policy/clear",
+            headers={
+                "X-API-KEY": API_KEY,
+                "Cookie": f"access_token_cookie={access_token_cookie}"
+            },
+            verify=False
+        )
+
+        return jsonify(res.json()), res.status_code
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -28,6 +28,17 @@
                 </div>
             </div>
         </div>
+        <!-- Tenant Settings Card -->
+        <div class="col-md-6">
+            <div class="card shadow rounded-4 h-100 border-0">
+                <div class="card-body">
+                    <h5 class="card-title">⚙️ Tenant Settings</h5>
+                    <p class="card-text">View your API key, current plan, and manage tenant-level settings.</p>
+                    <a href="{{ url_for('auth.tenant_settings') }}" class="btn btn-outline-dark rounded-pill">Manage Settings</a>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 {% endblock %}

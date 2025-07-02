@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Tenant Settings{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h3 class="mb-3">⚙️ Tenant Settings</h3>
+  <p>Manage your tenant's API key, subscription plan, and settings.</p>
+
+  <!-- 🧩 Tenant Info Card -->
+  <div class="card border border-primary mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <span>🔑 API Key & Plan</span>
+      <button class="btn btn-sm btn-light" onclick="copyApiKey()">📋 Copy Key</button>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-bold">API Key</label>
+          <input type="text" class="form-control" id="tenant_api_key" readonly>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-bold">Current Plan</label>
+          <input type="text" class="form-control" id="tenant_plan" readonly>
+        </div>
+      </div>
+      <div class="text-end">
+        <button class="btn btn-outline-primary me-2" onclick="openUpgradeModal()">⬆️ Upgrade</button>
+        <button class="btn btn-outline-secondary" onclick="openDowngradeModal()">⬇️ Downgrade</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 📈 Upgrade Plan Modal -->
+<div class="modal fade" id="upgradePlanModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form id="upgradeForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Upgrade Plan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Select Plan</label>
+        <select class="form-select" id="new_plan">
+          <option value="Premium">Premium - $29/month</option>
+          <option value="Enterprise">Enterprise - $99/month</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-success">Proceed to Payment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 📉 Downgrade Plan Modal -->
+<div class="modal fade" id="downgradePlanModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form id="downgradeForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Downgrade Plan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to downgrade your plan to <strong>Free</strong>? Some features may be limited.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-warning">Yes, Downgrade</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 💳 Simulated Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form id="paymentForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Complete Payment</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>You are upgrading to the <strong id="selectedPlanName">-</strong> plan.</p>
+        <p>Amount: <strong id="planAmountText">$0.00</strong></p>
+        <label for="mock_payment_input">Payment Info (simulated)</label>
+        <input type="text" class="form-control" id="mock_payment_input" placeholder="Card or Mobile Money Number" required>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-success">Pay Now</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 📤 Upload Tenant Trust Policy -->
+<div class="card border border-primary mb-4">
+  <div class="card-header bg-primary text-white">Custom Trust Policy</div>
+  <div class="card-body">
+    <form id="uploadPolicyForm" enctype="multipart/form-data" class="mb-3">
+      <label class="form-label">Upload Policy File (.json)</label>
+      <input type="file" class="form-control" id="policyFile" accept=".json" required>
+      <button type="submit" class="btn btn-outline-primary mt-2">Upload</button>
+    </form>
+
+    <div id="currentPolicyInfo" class="d-none">
+      <p class="mb-1"><strong>Active Policy File:</strong> <span id="policyFileName">-</span></p>
+      <p class="mb-1"><strong>Uploaded At:</strong> <span id="policyUploadedAt">-</span></p>
+      <pre id="policyJsonPreview" class="bg-light p-2 border rounded small text-wrap"></pre>
+    </div>
+  </div>
+  <button class="btn btn-outline-danger mt-3" onclick="clearPolicy()">
+  🗑️ Clear Trust Policy
+  </button>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/tenant_settings.js') }}"></script>
+{% endblock %}
+

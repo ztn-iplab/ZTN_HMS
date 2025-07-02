@@ -1,5 +1,3 @@
-// static/js/tenant_user_management.js
-
 document.addEventListener("DOMContentLoaded", () => {
   loadTenantUsers();
   loadAvailableRoles();
@@ -8,16 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     await submitTenantUserForm();
-  });
-
-  const roleSelect = document.getElementById("role_select");
-  roleSelect.addEventListener("change", () => {
-    const otherRoleInput = document.getElementById("custom_role_input");
-    if (roleSelect.value === "other") {
-      otherRoleInput.classList.remove("d-none");
-    } else {
-      otherRoleInput.classList.add("d-none");
-    }
   });
 });
 
@@ -60,16 +48,44 @@ async function loadAvailableRoles() {
     const select = document.getElementById("role_select");
     select.innerHTML = result.roles
       .map(r => `<option value="${r.role_name}">${r.role_name}</option>`)
-      .join("") + '<option value="other">Other</option>';
+      .join("");
   } catch (err) {
     Toastify({ text: "Error loading roles: " + err.message, backgroundColor: "#e53935" }).showToast();
   }
 }
 
+function openRoleModal() {
+  document.getElementById("addRoleForm").reset();
+  new bootstrap.Modal(document.getElementById("addRoleModal")).show();
+}
+
+document.getElementById("addRoleForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const roleName = document.getElementById("role_name").value.trim();
+
+  try {
+    const res = await fetch("/auth/tenant-roles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role_name: roleName })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to create role");
+
+    bootstrap.Modal.getInstance(document.getElementById("addRoleModal")).hide();
+    Toastify({ text: data.message, backgroundColor: "#43a047" }).showToast();
+
+    loadAvailableRoles();
+  } catch (err) {
+    Toastify({ text: err.message, backgroundColor: "#e53935" }).showToast();
+  }
+});
+
 function openUserModal() {
   document.getElementById("tenantUserForm").reset();
   document.getElementById("editingUserId").value = "";
-  document.getElementById("custom_role_input").classList.add("d-none");
   new bootstrap.Modal(document.getElementById("userModal")).show();
 }
 
@@ -82,11 +98,12 @@ async function editTenantUser(userId) {
 
     document.getElementById("editingUserId").value = userId;
     document.getElementById("mobile_number").value = result.mobile_number;
-    document.getElementById("full_name").value = result.first_name;
+    const fullName = result.full_name || "";
+    const firstName = fullName.trim().split(" ")[0] || "";
+    document.getElementById("first_name").value = firstName;
     document.getElementById("email").value = result.email;
     document.getElementById("role_select").value = result.role;
     document.getElementById("password").value = "";
-    document.getElementById("custom_role_input").classList.add("d-none");
 
     new bootstrap.Modal(document.getElementById("userModal")).show();
   } catch (err) {
@@ -109,14 +126,11 @@ async function deleteTenantUser(userId) {
 
 async function submitTenantUserForm() {
   const userId = document.getElementById("editingUserId").value;
-  let role = document.getElementById("role_select").value;
-  if (role === "other") {
-    role = document.getElementById("custom_role_name").value.trim();
-  }
+  const role = document.getElementById("role_select").value;
 
   const payload = {
     mobile_number: document.getElementById("mobile_number").value.trim(),
-    full_name: document.getElementById("full_name").value.trim(),
+    first_name: document.getElementById("first_name").value.trim(),
     email: document.getElementById("email").value.trim(),
     role,
     password: document.getElementById("password").value
