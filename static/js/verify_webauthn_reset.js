@@ -37,7 +37,7 @@ document
         }).showToast();
 
         setTimeout(() => {
-          window.location.href = "/login";
+          window.location.href = "/auth/login";
         }, 1500);
       } else {
         Toastify({

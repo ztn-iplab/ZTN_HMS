@@ -11,7 +11,7 @@ setInterval(() => {
         console.log("🔁 Hospital token refreshed");
       } else {
         console.warn("⚠️ Refresh failed, redirecting to login...");
-        window.location.href = "/login";
+        window.location.href = "/auth/login";
       }
     })
     .catch((err) => {

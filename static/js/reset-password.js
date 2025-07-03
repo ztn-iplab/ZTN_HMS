@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast("✅ " + data.message, "success");
       form.reset();
       setTimeout(() => {
-        window.location.href = "/login";
+        window.location.href = "/auth/login";
       }, 2000);
 
     } catch (err) {

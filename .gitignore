@@ -4,3 +4,4 @@ localhost.localdomain.key
 *.pem
 *.crt
 *.key
+.env

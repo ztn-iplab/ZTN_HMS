@@ -28,7 +28,7 @@
           <a class="nav-link" href="#contact">Contact</a>
         </li>
         <li class="nav-item">
-          <a class="btn btn-outline-light btn-sm ms-2" href="{{ url_for('login') }}">Login</a>
+          <a class="btn btn-outline-light btn-sm ms-2" href="{{ url_for('auth.login') }}">Login</a>
         </li>
       </ul>
     </div>
@@ -40,7 +40,7 @@
   <div class="container-lg">
     <h1 class="display-3 fw-bold">Welcome to ZTN Hospital</h1>
     <p class="lead">A leading provider of healthcare services, leveraging Zero Trust security for a better tomorrow.</p>
-    <a href="{{ url_for('login') }}" class="btn btn-light btn-lg mt-3">Login to Your Account</a>
+    <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-lg mt-3">Login to Your Account</a>
   </div>
 </section>
 
