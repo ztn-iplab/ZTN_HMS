@@ -3,13 +3,13 @@
 {% block title %}Tenant Settings{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-  <h3 class="mb-3">⚙️ Tenant Settings</h3>
-  <p>Manage your tenant's API key, subscription plan, and settings.</p>
+<div class="container py-5">
+  <h3 class="mb-4 text-danger">⚙️ Tenant Settings</h3>
+  <p class="mb-4">Manage your tenant's API key, subscription plan, and trust policy securely.</p>
 
-  <!-- 🧩 Tenant Info Card -->
-  <div class="card border border-primary mb-4">
-    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+  <!-- 🔑 API Key & Plan -->
+  <div class="card border border-danger mb-4">
+    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
       <span>🔑 API Key & Plan</span>
       <button class="btn btn-sm btn-light" onclick="copyApiKey()">📋 Copy Key</button>
     </div>
@@ -25,14 +25,34 @@
         </div>
       </div>
       <div class="text-end">
-        <button class="btn btn-outline-primary me-2" onclick="openUpgradeModal()">⬆️ Upgrade</button>
+        <button class="btn btn-outline-danger me-2" onclick="openUpgradeModal()">⬆️ Upgrade</button>
         <button class="btn btn-outline-secondary" onclick="openDowngradeModal()">⬇️ Downgrade</button>
       </div>
     </div>
   </div>
+
+  <!-- 🔧 Trust Policy -->
+  <div class="card border border-danger mb-4">
+    <div class="card-header bg-danger text-white">🛡️ Custom Trust Policy</div>
+    <div class="card-body">
+      <form id="uploadPolicyForm" enctype="multipart/form-data" class="mb-3">
+        <label class="form-label">Upload Policy File (.json)</label>
+        <input type="file" class="form-control" id="policyFile" accept=".json" required>
+        <button type="submit" class="btn btn-outline-danger mt-2">Upload</button>
+      </form>
+
+      <div id="currentPolicyInfo" class="d-none">
+        <p class="mb-1"><strong>Active Policy File:</strong> <span id="policyFileName">-</span></p>
+        <p class="mb-1"><strong>Uploaded At:</strong> <span id="policyUploadedAt">-</span></p>
+        <pre id="policyJsonPreview" class="bg-light p-2 border rounded small text-wrap"></pre>
+      </div>
+
+      <button class="btn btn-outline-secondary mt-3" onclick="clearPolicy()">🗑️ Clear Trust Policy</button>
+    </div>
+  </div>
 </div>
 
-<!-- 📈 Upgrade Plan Modal -->
+<!-- Upgrade Modal -->
 <div class="modal fade" id="upgradePlanModal" tabindex="-1">
   <div class="modal-dialog">
     <form id="upgradeForm" class="modal-content">
@@ -48,13 +68,13 @@
         </select>
       </div>
       <div class="modal-footer">
-        <button type="submit" class="btn btn-success">Proceed to Payment</button>
+        <button type="submit" class="btn btn-danger">Proceed to Payment</button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- 📉 Downgrade Plan Modal -->
+<!-- Downgrade Modal -->
 <div class="modal fade" id="downgradePlanModal" tabindex="-1">
   <div class="modal-dialog">
     <form id="downgradeForm" class="modal-content">
@@ -73,7 +93,7 @@
   </div>
 </div>
 
-<!-- 💳 Simulated Payment Modal -->
+<!-- Simulated Payment Modal -->
 <div class="modal fade" id="paymentModal" tabindex="-1">
   <div class="modal-dialog">
     <form id="paymentForm" class="modal-content">
@@ -88,37 +108,13 @@
         <input type="text" class="form-control" id="mock_payment_input" placeholder="Card or Mobile Money Number" required>
       </div>
       <div class="modal-footer">
-        <button type="submit" class="btn btn-success">Pay Now</button>
+        <button type="submit" class="btn btn-danger">Pay Now</button>
       </div>
     </form>
   </div>
 </div>
-
-<!-- 📤 Upload Tenant Trust Policy -->
-<div class="card border border-primary mb-4">
-  <div class="card-header bg-primary text-white">Custom Trust Policy</div>
-  <div class="card-body">
-    <form id="uploadPolicyForm" enctype="multipart/form-data" class="mb-3">
-      <label class="form-label">Upload Policy File (.json)</label>
-      <input type="file" class="form-control" id="policyFile" accept=".json" required>
-      <button type="submit" class="btn btn-outline-primary mt-2">Upload</button>
-    </form>
-
-    <div id="currentPolicyInfo" class="d-none">
-      <p class="mb-1"><strong>Active Policy File:</strong> <span id="policyFileName">-</span></p>
-      <p class="mb-1"><strong>Uploaded At:</strong> <span id="policyUploadedAt">-</span></p>
-      <pre id="policyJsonPreview" class="bg-light p-2 border rounded small text-wrap"></pre>
-    </div>
-  </div>
-  <button class="btn btn-outline-danger mt-3" onclick="clearPolicy()">
-  🗑️ Clear Trust Policy
-  </button>
-
-</div>
-
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/tenant_settings.js') }}"></script>
 {% endblock %}
-

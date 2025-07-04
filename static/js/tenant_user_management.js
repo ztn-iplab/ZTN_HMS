@@ -11,7 +11,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function loadTenantUsers() {
   try {
-    const response = await fetch("/auth/tenant-users");
+    const response = await fetch("/auth/tenant-users", {
+      method: "GET",
+      credentials: "include"  // ✅ Send JWT cookie
+    });
     const result = await response.json();
 
     if (!response.ok) throw new Error(result.error || "Failed to fetch users");
@@ -40,7 +43,10 @@ async function loadTenantUsers() {
 
 async function loadAvailableRoles() {
   try {
-    const response = await fetch("/auth/tenant-roles");
+    const response = await fetch("/auth/tenant-roles", {
+      method: "GET",
+      credentials: "include"  // ✅ Send JWT cookie
+    });
     const result = await response.json();
 
     if (!response.ok) throw new Error(result.error || "Failed to load roles");
@@ -68,6 +74,7 @@ document.getElementById("addRoleForm").addEventListener("submit", async (e) => {
     const res = await fetch("/auth/tenant-roles", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",  // ✅ Send JWT cookie
       body: JSON.stringify({ role_name: roleName })
     });
 
@@ -91,7 +98,10 @@ function openUserModal() {
 
 async function editTenantUser(userId) {
   try {
-    const response = await fetch(`/auth/tenant-users/${userId}`);
+    const response = await fetch(`/auth/tenant-users/${userId}`, {
+      method: "GET",
+      credentials: "include"  // ✅ Send JWT cookie
+    });
     const result = await response.json();
 
     if (!response.ok) throw new Error(result.error);
@@ -103,6 +113,7 @@ async function editTenantUser(userId) {
     document.getElementById("first_name").value = firstName;
     document.getElementById("email").value = result.email;
     document.getElementById("role_select").value = result.role;
+    document.getElementById("preferred_mfa_select").value = result.preferred_mfa || "both";
     document.getElementById("password").value = "";
 
     new bootstrap.Modal(document.getElementById("userModal")).show();
@@ -114,7 +125,10 @@ async function editTenantUser(userId) {
 async function deleteTenantUser(userId) {
   if (!confirm("Are you sure you want to delete this user?")) return;
   try {
-    const res = await fetch(`/auth/tenant-users/${userId}`, { method: "DELETE" });
+    const res = await fetch(`/auth/tenant-users/${userId}`, {
+      method: "DELETE",
+      credentials: "include"  // ✅ Send JWT cookie
+    });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     loadTenantUsers();
@@ -133,7 +147,8 @@ async function submitTenantUserForm() {
     first_name: document.getElementById("first_name").value.trim(),
     email: document.getElementById("email").value.trim(),
     role,
-    password: document.getElementById("password").value
+    password: document.getElementById("password").value,
+    preferred_mfa: document.getElementById("preferred_mfa_select").value
   };
 
   try {
@@ -143,6 +158,7 @@ async function submitTenantUserForm() {
     const res = await fetch(endpoint, {
       method,
       headers: { "Content-Type": "application/json" },
+      credentials: "include",  // ✅ Send JWT cookie
       body: JSON.stringify(payload)
     });
     const data = await res.json();

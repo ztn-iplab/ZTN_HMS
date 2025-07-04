@@ -11,11 +11,18 @@ class Config:
     ZTN_IAM_URL = os.getenv("ZTN_IAM_URL")
     API_KEY = os.getenv("API_KEY")
 
+    # ✅ JWT Configuration for Cookie-based Auth
+    JWT_TOKEN_LOCATION = ["cookies"]
+    JWT_ACCESS_COOKIE_NAME = "access_token"
+    JWT_COOKIE_CSRF_PROTECT = False  # Optional: Enable for CSRF protection if needed
+    JWT_ACCESS_COOKIE_PATH = "/"     # Make token available across the app
+    JWT_COOKIE_SECURE = False        # Set to True in production with HTTPS
+    JWT_SESSION_COOKIE = True
+    JWT_COOKIE_SAMESITE = "Lax"      # Prevent CSRF from external origins
 
 class DevelopmentConfig(Config):
     DEBUG = True
 
-
 class ProductionConfig(Config):
     DEBUG = False
-
+    JWT_COOKIE_SECURE = True  # ⛓️ Enforce secure cookies in prod

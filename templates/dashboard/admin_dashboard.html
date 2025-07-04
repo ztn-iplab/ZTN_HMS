@@ -4,41 +4,61 @@
 
 {% block content %}
 <div class="container py-5">
-    <h2 class="text-center mb-4">🛡️ Admin Dashboard</h2>
+  <h2 class="text-center text-danger mb-4">
+    🛡️ Admin Dashboard
+  </h2>
 
-    <div class="row g-4">
-        <!-- User Management Card -->
-        <div class="col-md-6">
-            <div class="card shadow rounded-4 h-100 border-0">
-                <div class="card-body">
-                    <h5 class="card-title">👥 User Management</h5>
-                    <p class="card-text">Add, edit, and manage hospital staff, doctors, nurses, and patients.</p>
-                    <a href="{{ url_for('dashboard.user_management') }}" class="btn btn-outline-primary rounded-pill">Go to User Management</a>
-                </div>
-            </div>
+  <div class="row g-4">
+    <!-- 👥 User Management Card -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card shadow rounded-4 h-100 border-0">
+        <div class="card-header bg-danger text-white fw-bold rounded-top-4">
+          👥 User Management
         </div>
-
-        <!-- System Metrics Card -->
-        <div class="col-md-6">
-            <div class="card shadow rounded-4 h-100 border-0">
-                <div class="card-body">
-                    <h5 class="card-title">📊 System Metrics</h5>
-                    <p class="card-text">Monitor key performance indicators and system health in real-time.</p>
-                    <a href="{{ url_for('dashboard.system_metrics') }}" class="btn btn-outline-success rounded-pill">View Metrics</a>
-                </div>
-            </div>
+        <div class="card-body">
+          <p class="card-text">
+            Add, edit, and manage doctors, nurses, and patients under your tenant.
+          </p>
+          <a href="{{ url_for('dashboard.user_management') }}" class="btn btn-danger rounded-pill">
+            Manage Users
+          </a>
         </div>
-        <!-- Tenant Settings Card -->
-        <div class="col-md-6">
-            <div class="card shadow rounded-4 h-100 border-0">
-                <div class="card-body">
-                    <h5 class="card-title">⚙️ Tenant Settings</h5>
-                    <p class="card-text">View your API key, current plan, and manage tenant-level settings.</p>
-                    <a href="{{ url_for('auth.tenant_settings') }}" class="btn btn-outline-dark rounded-pill">Manage Settings</a>
-                </div>
-            </div>
-        </div>
-
+      </div>
     </div>
+
+    <!-- 📊 System Metrics Card -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card shadow rounded-4 h-100 border-0">
+        <div class="card-header bg-danger text-white fw-bold rounded-top-4">
+          📊 System Metrics
+        </div>
+        <div class="card-body">
+          <p class="card-text">
+            Monitor real-time KPIs and performance analytics across your tenant.
+          </p>
+          <a href="{{ url_for('dashboard.system_metrics') }}" class="btn btn-danger rounded-pill">
+            View Metrics
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⚙️ Tenant Settings Card -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card shadow rounded-4 h-100 border-0">
+        <div class="card-header bg-danger text-white fw-bold rounded-top-4">
+          ⚙️ Tenant Settings
+        </div>
+        <div class="card-body">
+          <p class="card-text">
+            View your API key, current plan, and configure tenant-wide preferences.
+          </p>
+          <a href="{{ url_for('auth.tenant_settings') }}" class="btn btn-danger rounded-pill">
+            Manage Settings
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}

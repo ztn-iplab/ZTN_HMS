@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5 d-flex justify-content-center">
+  <div class="card shadow-lg" style="max-width: 500px; width: 100%;">
+    <div class="card-header bg-danger text-white">
+      <h4 class="mb-0"><i class="fas fa-cog me-2"></i>Settings</h4>
+    </div>
+    <div class="card-body">
+      <form id="mfaPreferenceForm">
+        <div class="mb-3">
+          <label for="preferred_mfa" class="form-label">Preferred MFA Method</label>
+          <select name="preferred_mfa" id="preferred_mfa" class="form-select" required>
+            <option value="totp" {% if mfa == 'totp' %}selected{% endif %}>TOTP</option>
+            <option value="webauthn" {% if mfa == 'webauthn' %}selected{% endif %}>WebAuthn</option>
+            <option value="both" {% if mfa == 'both' %}selected{% endif %}>Both</option>
+          </select>
+          {% if session.get("role") == "admin" %}
+            <hr class="my-4">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="enforce_mfa_switch">
+              <label class="form-check-label" for="enforce_mfa_switch">
+                Enforce TOTP + WebAuthn for all users under this tenant
+              </label>
+            </div>
+          {% endif %}
+
+        </div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-save me-1"></i> Save Preference
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/mfa_settings.js') }}"></script>
+{% endblock %}

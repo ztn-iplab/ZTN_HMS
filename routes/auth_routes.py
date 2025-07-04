@@ -2,6 +2,7 @@ from flask import Blueprint, session, jsonify, request, flash, redirect, url_for
 import requests
 import urllib3
 from flask import current_app
+from flask_jwt_extended import set_access_cookies
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -35,13 +36,23 @@ def login():
                 session["role"] = data.get("role")
                 session["user_id"] = data.get("user_id")
 
-                # MFA flows
-                if data.get("require_totp_setup"):
-                    return redirect(url_for("auth.setup_totp"))
-                if data.get("require_totp"):
-                    return redirect(url_for("auth.verify_totp"))
+                # ✅ Store MFA flags in session
+                session["require_totp"] = data.get("require_totp", False)
+                session["require_webauthn"] = data.get("require_webauthn", False)
+                session["skip_all_mfa"] = data.get("skip_all_mfa", False)
+                session["require_totp_setup"] = data.get("require_totp_setup", False)
 
-                # Role-based dashboard
+                # 🔐 MFA flows
+                if session.get("skip_all_mfa"):
+                    pass
+                elif session.get("require_totp_setup"):
+                    return redirect(url_for("auth.setup_totp"))
+                elif session.get("require_totp") and not session.get("totp_verified"):
+                    return redirect(url_for("auth.verify_totp"))
+                elif session.get("require_webauthn") and not session.get("webauthn_verified"):
+                    return redirect(url_for("auth.verify_webauthn_page"))
+
+                # 🧠 Role-based dashboard
                 role = data.get("role")
                 if role == "admin":
                     return redirect(url_for("dashboard.admin_dashboard"))
@@ -143,8 +154,8 @@ def verify_totp_post():
             session["totp_verified"] = True
             session["user_id"] = data.get("user_id")
 
-            # WebAuthn fallback check
-            if data.get("require_webauthn"):
+            # ✅ Use session instead of IAM's response
+            if session.get("require_webauthn"):
                 if data.get("has_webauthn_credentials"):
                     resp = make_response(redirect(url_for("auth.verify_webauthn_page")))
                     resp.set_cookie(
@@ -158,7 +169,7 @@ def verify_totp_post():
                 else:
                     return redirect(url_for("auth.setup_webauthn"))
 
-            # No WebAuthn → role-based redirect
+            # ✅ No WebAuthn required → role-based dashboard
             role = session.get("role")
             if role == "admin":
                 return redirect(url_for("dashboard.admin_dashboard"))
@@ -385,17 +396,22 @@ def complete_webauthn_verification():
 
         result = res.json()
 
-        # ✅ Save new token + cleanup if successful
         if res.status_code == 200 and result.get("access_token"):
             session["access_token"] = result["access_token"]
             session.pop("webauthn_assertion_state", None)
             session.pop("assertion_user_id", None)
+
+            # ✅ Set JWT as cookie (crucial fix)
+            resp = jsonify(result)
+            set_access_cookies(resp, result["access_token"])
+            return resp, 200
 
         return jsonify(result), res.status_code
 
     except Exception as e:
         print("❌ complete_webauthn_verification error:", e)
         return jsonify({"error": str(e)}), 500
+
 
 @auth_bp.route("/reset-webauthn-begin", methods=["POST"])
 def reset_webauthn_begin():
@@ -986,3 +1002,61 @@ def hospital_token_refresh():
     except Exception as e:
         print("❌ Token refresh error:", e)
         return jsonify({"error": f"Internal error: {str(e)}"}), 500
+
+
+# User Profile
+@auth_bp.route("/profile", methods=["GET", "POST"])
+def user_profile():
+    # ✅ Logic to render profile or save preferred_mfa goes here
+    return render_template("dashboard/profile.html")
+
+@auth_bp.route("/update-mfa-preference", methods=["PUT"])
+def update_mfa_preference():
+    access_token_cookie = request.cookies.get("access_token_cookie")
+    if not access_token_cookie:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+
+    res = requests.put(
+        f"{current_app.config['ZTN_IAM_URL']}/tenant/user/preferred-mfa",
+        headers={
+            "X-API-KEY": current_app.config["API_KEY"],
+            "Cookie": f"access_token_cookie={access_token_cookie}",
+            "Content-Type": "application/json"
+        },
+        json=data,
+        verify=False
+    )
+
+    return jsonify(res.json()), res.status_code
+
+@auth_bp.route("/enforce-mfa-policy", methods=["GET", "PUT"])
+def enforce_mfa_policy():
+    access_token_cookie = request.cookies.get("access_token_cookie")
+    if not access_token_cookie:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    session_obj = requests.Session()
+    session_obj.cookies.set("access_token_cookie", access_token_cookie)
+
+    if request.method == "GET":
+        res = session_obj.get(
+            f"{current_app.config['ZTN_IAM_URL']}/tenant/mfa-policy",
+            headers={"X-API-KEY": current_app.config["API_KEY"]},
+            verify=False
+        )
+        return jsonify(res.json()), res.status_code
+
+    if request.method == "PUT":
+        data = request.get_json()
+        res = session_obj.put(
+            f"{current_app.config['ZTN_IAM_URL']}/tenant/mfa-policy",
+            headers={
+                "X-API-KEY": current_app.config["API_KEY"],
+                "Content-Type": "application/json"
+            },
+            json=data,
+            verify=False
+        )
+        return jsonify(res.json()), res.status_code
