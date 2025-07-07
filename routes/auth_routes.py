@@ -3,6 +3,7 @@ import requests
 import urllib3
 from flask import current_app
 from flask_jwt_extended import set_access_cookies
+import json
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -951,6 +952,35 @@ def upload_trust_policy():
         print("❌ upload_trust_policy error:", e)
         return jsonify({"error": f"Internal error: {str(e)}"}), 500
 
+# Real time edit of the uploaded policy:
+@auth_bp.route("/trust-policy/edit", methods=["PUT"])
+def edit_trust_policy():
+    try:
+        access_token = request.cookies.get("access_token_cookie")
+        if not access_token:
+            return jsonify({"error": "Missing access token cookie"}), 401
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Missing JSON payload"}), 400
+
+        res = requests.put(
+            f"{current_app.config['ZTN_IAM_URL']}/tenant/trust-policy/edit",
+            headers={
+                "X-API-KEY": current_app.config["API_KEY"],
+                "Cookie": f"access_token_cookie={access_token}",
+                "Content-Type": "application/json"
+            },
+            data=json.dumps(data),
+            verify=False
+        )
+
+        return jsonify(res.json()), res.status_code
+
+    except Exception as e:
+        print("❌ edit_trust_policy error:", e)
+        return jsonify({"error": f"Internal error: {str(e)}"}), 500
+
 
 @auth_bp.route("/trust-policy/clear", methods=["DELETE"])
 def proxy_clear_trust_policy():
@@ -1007,9 +1037,9 @@ def hospital_token_refresh():
 # User Profile
 @auth_bp.route("/profile", methods=["GET", "POST"])
 def user_profile():
-    # ✅ Logic to render profile or save preferred_mfa goes here
     return render_template("dashboard/profile.html")
 
+# Update mfa preference per user
 @auth_bp.route("/update-mfa-preference", methods=["PUT"])
 def update_mfa_preference():
     access_token_cookie = request.cookies.get("access_token_cookie")
@@ -1031,6 +1061,7 @@ def update_mfa_preference():
 
     return jsonify(res.json()), res.status_code
 
+# Admin enforces the mfa policy for all the tenant users
 @auth_bp.route("/enforce-mfa-policy", methods=["GET", "PUT"])
 def enforce_mfa_policy():
     access_token_cookie = request.cookies.get("access_token_cookie")

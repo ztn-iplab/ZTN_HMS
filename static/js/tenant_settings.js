@@ -184,4 +184,60 @@ async function loadTrustPolicy() {
   }
 }
 
+function togglePolicyEdit() {
+  const preview = document.getElementById("policyJsonPreview");
+  const editor = document.getElementById("policyJsonEditor");
+  const editBtn = document.getElementById("editPolicyBtn");
+  const saveBtn = document.getElementById("savePolicyBtn");
+  const cancelBtn = document.getElementById("cancelPolicyBtn");
+
+  editor.value = preview.textContent;
+  editor.classList.remove("d-none");
+  preview.classList.add("d-none");
+
+  editBtn.classList.add("d-none");
+  saveBtn.classList.remove("d-none");
+  cancelBtn.classList.remove("d-none");
+}
+
+function cancelPolicyEdit() {
+  const preview = document.getElementById("policyJsonPreview");
+  const editor = document.getElementById("policyJsonEditor");
+  const editBtn = document.getElementById("editPolicyBtn");
+  const saveBtn = document.getElementById("savePolicyBtn");
+  const cancelBtn = document.getElementById("cancelPolicyBtn");
+
+  editor.classList.add("d-none");
+  preview.classList.remove("d-none");
+
+  editBtn.classList.remove("d-none");
+  saveBtn.classList.add("d-none");
+  cancelBtn.classList.add("d-none");
+}
+
+async function saveEditedPolicy() {
+  const editor = document.getElementById("policyJsonEditor");
+  const raw = editor.value;
+
+  try {
+    const parsed = JSON.parse(raw); // Validate JSON
+
+    const response = await fetch("/auth//trust-policy/edit", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(parsed)
+    });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Failed to save policy");
+
+    document.getElementById("policyJsonPreview").textContent = JSON.stringify(parsed, null, 2);
+    Toastify({ text: "✅ Policy saved successfully!", style: { background: "green" } }).showToast();
+    cancelPolicyEdit();
+  } catch (err) {
+    Toastify({ text: `❌ Error: ${err.message}`, style: { background: "red" } }).showToast();
+  }
+}
 

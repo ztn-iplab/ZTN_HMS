@@ -1,10 +1,10 @@
 from hospital_app import create_app
+from flask import request, current_app
 
 app = create_app()
 
 @app.context_processor
 def inject_current_endpoint():
-    from flask import request
     return {"current_endpoint": request.endpoint}
 
 if __name__ == "__main__":
