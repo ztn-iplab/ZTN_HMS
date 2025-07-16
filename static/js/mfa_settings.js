@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("mfaPreferenceForm");
 
-  // 🛡️ MFA Preference Update (all users)
+  //  MFA Preference Update (all users)
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // 🔐 Admin-only: Enforce MFA for all users
+  //  Admin-only: Enforce MFA for all users
   const enforceSwitch = document.getElementById("enforce_mfa_switch");
 
   if (enforceSwitch) {
@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
           position: "right",
           backgroundColor: "#dc3545"
         }).showToast();
-        enforceSwitch.checked = !enforceSwitch.checked;  // ⏪ revert switch if failed
+        enforceSwitch.checked = !enforceSwitch.checked;  // revert switch if failed
       }
     });
   }

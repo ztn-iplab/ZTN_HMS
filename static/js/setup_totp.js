@@ -2,9 +2,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const container = document.getElementById("qr-container");
   const manualKey = document.getElementById("manual-key");
   const continueBtn = document.getElementById("confirm-totp-btn");
-
-  console.log("📡 Fetching /setup-totp via backend proxy...");
-
   fetch("/auth/setup-totp", {
     method: "GET",
     credentials: "same-origin",
@@ -46,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
   continueBtn.addEventListener("click", async () => {
-    const confirm = window.confirm("✅ Have you scanned the QR or added the key?");
+    const confirm = window.confirm("Have you scanned the QR or added the key?");
     if (!confirm) return;
 
     continueBtn.disabled = true;
@@ -68,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
           backgroundColor: "#43a047",
         }).showToast();
         setTimeout(() => {
-          window.location.href = "/verify-totp"; // or your protected page
+          window.location.href = "/auth/verify-totp";
         }, 1500);
       } else {
         throw new Error(data.error || "Confirmation failed");

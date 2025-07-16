@@ -1,0 +1,4 @@
+.gradient-header {
+  background: linear-gradient(45deg, #dc3545, #b02a37);  /* Soft red gradient */
+  color: white;
+}

@@ -1,12 +1,12 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-
-db = SQLAlchemy()
+from hospital_core.extensions import db
 
 # -------------------------------
-# 👨‍⚕️ Doctor (Authenticated via ZTN-IAM)
+# Doctor (Authenticated via ZTN-IAM)
 # -------------------------------
 class Doctor(db.Model):
+    __tablename__ = "doctors"
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, nullable=False)  # From ZTN-IAM
     full_name = db.Column(db.String(120), nullable=False)
@@ -20,9 +20,11 @@ class Doctor(db.Model):
 
 
 # -------------------------------
-# 👩‍⚕️ Nurse (Authenticated via ZTN-IAM)
+# Nurse (Authenticated via ZTN-IAM)
 # -------------------------------
 class Nurse(db.Model):
+    __tablename__ = "nurses"
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, nullable=False)  # From ZTN-IAM
     full_name = db.Column(db.String(120), nullable=False)
@@ -34,9 +36,11 @@ class Nurse(db.Model):
 
 
 # -------------------------------
-# 🧑‍🦲 Patient (Locally stored)
+# Patient (Locally stored)
 # -------------------------------
 class Patient(db.Model):
+    __tablename__ = "patients"
+
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(120), nullable=False)
     date_of_birth = db.Column(db.Date, nullable=False)
@@ -49,24 +53,28 @@ class Patient(db.Model):
 
 
 # -------------------------------
-# 📆 Appointment
+# Appointment
 # -------------------------------
 class Appointment(db.Model):
+    __tablename__ = "appointments"
+
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'), nullable=False)
-    doctor_id = db.Column(db.Integer, db.ForeignKey('doctor.id'), nullable=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=True)
     scheduled_time = db.Column(db.DateTime, nullable=False)
     purpose = db.Column(db.String(200))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 # -------------------------------
-# 🧾 Diagnosis
+# Diagnosis
 # -------------------------------
 class Diagnosis(db.Model):
+    __tablename__ = "diagnoses"
+
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'), nullable=False)
-    doctor_id = db.Column(db.Integer, db.ForeignKey('doctor.id'), nullable=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=True)
     diagnosis_date = db.Column(db.DateTime, default=datetime.utcnow)
     description = db.Column(db.Text)
 
@@ -74,22 +82,26 @@ class Diagnosis(db.Model):
 
 
 # -------------------------------
-# 💊 Treatment
+# Treatment
 # -------------------------------
 class Treatment(db.Model):
+    __tablename__ = "treatments"
+
     id = db.Column(db.Integer, primary_key=True)
-    diagnosis_id = db.Column(db.Integer, db.ForeignKey('diagnosis.id'), nullable=False)
+    diagnosis_id = db.Column(db.Integer, db.ForeignKey('diagnoses.id'), nullable=False)
     medication = db.Column(db.String(200))
     procedure = db.Column(db.String(200))
     notes = db.Column(db.Text)
 
 
 # -------------------------------
-# 🧑‍⚕️ NurseInteraction
+# NurseInteraction
 # -------------------------------
 class NurseInteraction(db.Model):
+    __tablename__ = "nurse_interactions"
+
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'), nullable=False)
-    nurse_id = db.Column(db.Integer, db.ForeignKey('nurse.id'), nullable=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
+    nurse_id = db.Column(db.Integer, db.ForeignKey('nurses.id'), nullable=True)
     notes = db.Column(db.Text)
     interaction_time = db.Column(db.DateTime, default=datetime.utcnow)

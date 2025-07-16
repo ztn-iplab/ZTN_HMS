@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 {% block title %}Register Passkey{% endblock %}
 
@@ -8,6 +7,13 @@
     <h4 class="text-center text-primary mb-3">🔏 Register Your Passkey</h4>
     <p class="text-center">You can use FaceID, TouchID, or a hardware security key.</p>
 
+    <!-- Warning if unsupported -->
+    <div id="unsupported-warning" class="alert alert-warning d-none text-center mt-3">
+      ⚠️ Your browser does not support passkey registration (WebAuthn).
+      <br>Try using a different browser or device that supports security keys.
+    </div>
+
+    <!-- ✅ Action Button -->
     <div class="d-grid mt-4">
       <button class="btn btn-primary" id="register-passkey-btn">Register Now</button>
     </div>
@@ -17,7 +23,28 @@
     </div>
   </div>
 </div>
+
 <script>const accessToken = "{{ access_token }}";</script>
 <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 <script src="{{ url_for('static', filename='js/enroll_webauthn.js') }}"></script>
+
+<script>
+  // Browser capability check
+  if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+    PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then((available) => {
+      if (!available) {
+        const warning = document.getElementById("unsupported-warning");
+        const button = document.getElementById("register-passkey-btn");
+        if (warning) warning.classList.remove("d-none");
+        if (button) button.style.display = "none";
+      }
+    });
+  } else {
+    // Older browsers
+    const warning = document.getElementById("unsupported-warning");
+    const button = document.getElementById("register-passkey-btn");
+    if (warning) warning.classList.remove("d-none");
+    if (button) button.style.display = "none";
+  }
+</script>
 {% endblock %}

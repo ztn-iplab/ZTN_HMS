@@ -3,10 +3,57 @@
 {% block title %}Manage Appointments{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2 class="text-center">Manage Appointments</h2>
-    <p>This page will allow doctors to manage and view their appointments.</p>
-    <!-- Placeholder content -->
-    <p>📅 Coming soon.</p>
+<div class="container py-4">
+
+  <!-- 🔴 Title Styled Like Tenant Settings -->
+  <div class="card border border-danger mb-4">
+    <div class="card-header bg-danger text-white text-center fw-bold">
+      📅 Manage Appointments
+    </div>
+    <div class="card-body">
+      
+      <div class="mb-3 text-end">
+        <input type="text" class="form-control w-50 ms-auto" id="searchInput" placeholder="🔍 Search appointments..." />
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover" id="appointmentsTable">
+          <thead class="table-dark">
+            <tr>
+              <th>ID</th>
+              <th>Patient</th>
+              <th>Scheduled Time</th>
+              <th>Purpose</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for appointment in appointments %}
+            <tr>
+              <td>{{ appointment.id }}</td>
+              <td>{{ appointment.patient.full_name }}</td>
+              <td>{{ appointment.scheduled_time.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td>{{ appointment.purpose }}</td>
+              <td>
+                <a href="{{ url_for('appointments.edit_appointment', appointment_id=appointment.id) }}" class="btn btn-warning btn-sm">Edit</a>
+                <a href="{{ url_for('appointments.delete_appointment', appointment_id=appointment.id) }}" class="btn btn-danger btn-sm">Delete</a>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="text-center">No appointments found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/appointments.js') }}"></script>
 {% endblock %}

@@ -1,5 +1,7 @@
-from hospital_app import create_app
-from flask import request, current_app
+# hospital_app/main.py
+
+from hospital_core import create_app
+from flask import request
 
 app = create_app()
 

@@ -2,14 +2,20 @@ from flask import Blueprint, render_template, session, redirect, url_for, flash
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
-def protect_role(required_role):
+from functools import wraps
+
+def protect_role(required_roles):
+    if isinstance(required_roles, str):
+        required_roles = [required_roles]
+
     def wrapper(fn):
+        @wraps(fn)
         def decorated(*args, **kwargs):
-            if session.get("role") != required_role and required_role != "any":
+            user_role = session.get("role")
+            if user_role not in required_roles:
                 flash("Access denied.", "danger")
                 return redirect(url_for("auth.login"))
             return fn(*args, **kwargs)
-        decorated.__name__ = fn.__name__
         return decorated
     return wrapper
 
@@ -45,7 +51,9 @@ def system_metrics():
 @dashboard_bp.route("/patients/view")
 @protect_role("doctor")
 def view_patients():
-    return render_template("patients/view_patients.html")
+    from hospital_core.models import Patient
+    patients = Patient.query.all()
+    return render_template("patients/view_patients.html", patients=patients)
 
 @dashboard_bp.route("/appointments/manage")
 @protect_role("doctor")

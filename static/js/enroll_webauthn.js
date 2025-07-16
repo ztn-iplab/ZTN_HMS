@@ -1,4 +1,4 @@
-// ✅ enroll_webauthn.js - patched for hospital app
+
 document.addEventListener("DOMContentLoaded", () => {
   console.log("📦 WebAuthn script loaded");
 
@@ -10,7 +10,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  // Optional: if statusDiv is not in the template, we create it for feedback
   if (!statusDiv) {
     console.warn("⚠️ 'biometric-status' not found, injecting dynamically.");
     const div = document.createElement("div");
@@ -28,7 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   enrollBtn.addEventListener("click", async () => {
-    console.log("🟢 Register button clicked");
 
     try {
       enrollBtn.disabled = true;
@@ -48,9 +46,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!res.ok || !options) {
         throw new Error(json.error || "❌ Invalid registration options.");
       }
-
-      console.log("📨 Received options:", options);
-
       // Decode binary fields
       options.challenge = base64urlToBuffer(options.challenge);
       options.user.id = base64urlToBuffer(options.user.id);
@@ -69,7 +64,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const credential = await navigator.credentials.create({
         publicKey: options,
       });
-      console.log("🧬 Credential created:", credential);
 
       const transports = credential.response.getTransports?.() || [];
 
@@ -101,9 +95,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!completeRes.ok) {
         throw new Error(result.error || "❌ Registration failed.");
       }
-
-      console.log("✅ Registration result:", result);
-
       // Feedback
       let methodUsed = "passkey";
       if (transports.includes("usb")) methodUsed = "USB key";

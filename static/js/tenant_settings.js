@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// 🔑 Fetch current API key and plan
+//  Fetch current API key and plan
 async function fetchTenantSettings() {
   try {
     const response = await fetch("/auth/tenant-settings");
@@ -27,7 +27,7 @@ async function fetchTenantSettings() {
   }
 }
 
-// 📋 Copy API key
+//  Copy API key
 function copyApiKey() {
   const keyInput = document.getElementById("tenant_api_key");
   keyInput.select();
@@ -35,17 +35,17 @@ function copyApiKey() {
   Toastify({ text: "API Key copied to clipboard!", backgroundColor: "#43a047" }).showToast();
 }
 
-// 📈 Show upgrade modal
+// Show upgrade modal
 function openUpgradeModal() {
   new bootstrap.Modal(document.getElementById("upgradePlanModal")).show();
 }
 
-// 📉 Show downgrade modal
+//  Show downgrade modal
 function openDowngradeModal() {
   new bootstrap.Modal(document.getElementById("downgradePlanModal")).show();
 }
 
-// ⬇️ Perform downgrade to Free
+//  Perform downgrade to Free
 async function downgradePlan() {
   try {
     const res = await fetch("/auth/change-plan", {
@@ -63,7 +63,7 @@ async function downgradePlan() {
   }
 }
 
-// 🧾 Simulated upgrade + payment flow
+//  Simulated upgrade + payment flow
 function handleUpgradeSubmit(e) {
   e.preventDefault();
   selectedUpgradePlan = document.getElementById("new_plan").value;
@@ -105,7 +105,7 @@ async function handleMockPayment(e) {
   }
 }
 
-// 📤 Upload trust policy JSON file
+//  Upload trust policy JSON file
 async function handlePolicyUpload(e) {
   e.preventDefault();
   const fileInput = document.getElementById("policyFile");
@@ -133,7 +133,7 @@ async function handlePolicyUpload(e) {
   }
 }
 
-// 📄 Load current policy and preview config
+//  Load current policy and preview config
 async function loadTrustPolicy() {
   try {
     const res = await fetch("/auth/trust-policy");
@@ -145,7 +145,7 @@ async function loadTrustPolicy() {
 
     const utcDate = new Date(data.uploaded_at);
 
-    // ✅ Convert to JST explicitly using toLocaleString with timeZone
+    //  Convert to JST explicitly using toLocaleString with timeZone
     const tokyoTime = utcDate.toLocaleString("en-US", {
       timeZone: "Asia/Tokyo",
       year: "numeric",

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Appointment{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="text-center text-danger">📝 Edit Appointment</h2>
+
+    <form method="POST">
+        <div class="mb-3">
+            <label class="form-label">Scheduled Time</label>
+            <input type="datetime-local" class="form-control" name="scheduled_time" value="{{ appointment.scheduled_time.strftime('%Y-%m-%dT%H:%M') }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Purpose</label>
+            <input type="text" class="form-control" name="purpose" value="{{ appointment.purpose }}" required>
+        </div>
+
+        <button type="submit" class="btn btn-danger">Save Changes</button>
+    </form>
+</div>
+{% endblock %}

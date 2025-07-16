@@ -37,23 +37,23 @@ def login():
                 session["role"] = data.get("role")
                 session["user_id"] = data.get("user_id")
 
-                # ✅ Store MFA flags in session
+                # Store MFA flags in session
                 session["require_totp"] = data.get("require_totp", False)
                 session["require_webauthn"] = data.get("require_webauthn", False)
                 session["skip_all_mfa"] = data.get("skip_all_mfa", False)
                 session["require_totp_setup"] = data.get("require_totp_setup", False)
 
-                # 🔐 MFA flows
+                # MFA flows
                 if session.get("skip_all_mfa"):
                     pass
                 elif session.get("require_totp_setup"):
-                    return redirect(url_for("auth.setup_totp"))
+                    return redirect(url_for("auth.setup_totp_page"))
                 elif session.get("require_totp") and not session.get("totp_verified"):
                     return redirect(url_for("auth.verify_totp"))
                 elif session.get("require_webauthn") and not session.get("webauthn_verified"):
                     return redirect(url_for("auth.verify_webauthn_page"))
 
-                # 🧠 Role-based dashboard
+                # Role-based dashboard
                 role = data.get("role")
                 if role == "admin":
                     return redirect(url_for("dashboard.admin_dashboard"))
@@ -83,8 +83,12 @@ def logout():
 
 
 # TOTP Section
+@auth_bp.route("/setup-totp-page", methods=["GET"])
+def setup_totp_page():
+    return render_template("auth/setup_totp.html")
+
 @auth_bp.route("/setup-totp", methods=["GET"])
-def enroll_totp_proxy():
+def setup_totp():
     access_token = session.get("access_token")
     if not access_token:
         return jsonify({"error": "Not logged in"}), 401
@@ -155,7 +159,7 @@ def verify_totp_post():
             session["totp_verified"] = True
             session["user_id"] = data.get("user_id")
 
-            # ✅ Use session instead of IAM's response
+            # Use session instead of IAM's response
             if session.get("require_webauthn"):
                 if data.get("has_webauthn_credentials"):
                     resp = make_response(redirect(url_for("auth.verify_webauthn_page")))
@@ -170,7 +174,7 @@ def verify_totp_post():
                 else:
                     return redirect(url_for("auth.setup_webauthn"))
 
-            # ✅ No WebAuthn required → role-based dashboard
+            # No WebAuthn required → role-based dashboard
             role = session.get("role")
             if role == "admin":
                 return redirect(url_for("dashboard.admin_dashboard"))
@@ -250,7 +254,7 @@ def verify_fallback_totp():
     try:
         session_obj = requests.Session()
 
-        # 🛡️ Forward IAM session cookies
+        # Forward IAM session cookies
         if "iam_reset_cookies" in session:
             session_obj.cookies = requests.utils.cookiejar_from_dict(session["iam_reset_cookies"])
 
@@ -264,7 +268,7 @@ def verify_fallback_totp():
             verify=False
         )
 
-        # 🔁 Save back updated IAM session cookies
+        # Save back updated IAM session cookies
         session["iam_reset_cookies"] = requests.utils.dict_from_cookiejar(session_obj.cookies)
 
         return jsonify(response.json()), response.status_code
@@ -402,7 +406,7 @@ def complete_webauthn_verification():
             session.pop("webauthn_assertion_state", None)
             session.pop("assertion_user_id", None)
 
-            # ✅ Set JWT as cookie (crucial fix)
+            # Set JWT as cookie (crucial fix)
             resp = jsonify(result)
             set_access_cookies(resp, result["access_token"])
             return resp, 200
@@ -431,7 +435,7 @@ def reset_webauthn_begin():
             verify=False
         )
 
-        # 🔐 Save IAM session cookies for next step
+        # Save IAM session cookies for next step
         session["iam_reset_cookies"] = requests.utils.dict_from_cookiejar(session_obj.cookies)
 
         return jsonify(res.json()), res.status_code
@@ -447,11 +451,11 @@ def reset_webauthn_complete():
     try:
         session_obj = requests.Session()
 
-        # 🔁 Restore cookies from /begin step
+        # Restore cookies from /begin step
         if "iam_reset_cookies" in session:
             session_obj.cookies = requests.utils.cookiejar_from_dict(session["iam_reset_cookies"])
 
-        # 🌐 Forward to IAM
+        # Forward to IAM
         res = session_obj.post(
             f"{current_app.config['ZTN_IAM_URL']}/webauthn/reset-assertion-complete",
             headers={
@@ -462,7 +466,7 @@ def reset_webauthn_complete():
             verify=False
         )
 
-        # ✅ Save any updated IAM cookies
+        # Save any updated IAM cookies
         session["iam_reset_cookies"] = requests.utils.dict_from_cookiejar(session_obj.cookies)
 
         return jsonify(res.json()), res.status_code
@@ -639,7 +643,7 @@ def verify_webauthn_reset_action():
         return jsonify({"error": str(e)}), 500
 
 # User Management
-# 🔐 Get all users under this tenant
+# Get all users under this tenant
 @auth_bp.route("/tenant-users", methods=["GET"])
 def get_tenant_users():
     try:
@@ -716,7 +720,7 @@ def get_tenant_roles():
         return jsonify({"error": str(e)}), 500
 
 
-# 🆕 Register a new tenant user
+# Register a new tenant user
 @auth_bp.route("/tenant-users", methods=["POST"])
 def register_tenant_user():
     try:
@@ -743,7 +747,7 @@ def register_tenant_user():
         print("❌ register_tenant_user error:", e)
         return jsonify({"error": str(e)}), 500
 
-# ✏️ Edit a tenant user
+# Edit a tenant user
 @auth_bp.route("/tenant-users/<int:user_id>", methods=["PUT"])
 def update_tenant_user(user_id):
     try:
@@ -797,7 +801,7 @@ def delete_tenant_user(user_id):
         return jsonify({"error": str(e)}), 500
 
 
-# 👤 Get single tenant user
+# Get single tenant user
 @auth_bp.route("/tenant-users/<int:user_id>", methods=["GET"])
 def get_single_tenant_user(user_id):
     try:

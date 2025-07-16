@@ -6,12 +6,12 @@ load_dotenv()
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
+    SQLALCHEMY_DATABASE_URI = "postgresql://ztn:ztn%40sim@localhost:5432/hospital_db"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     ZTN_IAM_URL = os.getenv("ZTN_IAM_URL")
     API_KEY = os.getenv("API_KEY")
 
-    # ✅ JWT Configuration for Cookie-based Auth
+    # JWT Configuration for Cookie-based Auth
     JWT_TOKEN_LOCATION = ['cookies']
     JWT_ACCESS_COOKIE_NAME = 'access_token_cookie'
     # JWT_REFRESH_COOKIE_NAME = 'refresh_token_cookie'
@@ -26,4 +26,4 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
-    JWT_COOKIE_SECURE = True  # ⛓️ Enforce secure cookies in prod
+    JWT_COOKIE_SECURE = True  # Enforce secure cookies in prod
