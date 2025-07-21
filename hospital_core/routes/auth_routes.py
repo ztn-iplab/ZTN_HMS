@@ -36,6 +36,7 @@ def login():
                 session["access_token"] = data["access_token"]
                 session["role"] = data.get("role")
                 session["user_id"] = data.get("user_id")
+                session["trust_score"] = data.get("trust_score") 
 
                 # Store MFA flags in session
                 session["require_totp"] = data.get("require_totp", False)
@@ -1095,3 +1096,7 @@ def enforce_mfa_policy():
             verify=False
         )
         return jsonify(res.json()), res.status_code
+
+@auth_bp.route("/trust-info")
+def trust_info():
+    return render_template("auth/trust_info.html")

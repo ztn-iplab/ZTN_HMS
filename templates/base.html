@@ -43,26 +43,49 @@
 <body>
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-custom">
-  <div class="container">
-    <a class="navbar-brand" href="/">🛡️ ZTN TenantKit</a>
-    {% if session.get("access_token") %}
-    <div class="ms-auto d-flex align-items-center gap-2">
-      <!-- Profile Dropdown -->
-      <div class="dropdown">
-        <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-          <i class="fa fa-user-circle"></i> {{ session.get("role", "User")|capitalize }}
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="{{ url_for('auth.user_profile') }}"><i class="fa fa-cog me-2"></i> My Profile</a></li>
-          <li><hr class="dropdown-divider" /></li>
-          <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="fa fa-sign-out-alt me-2"></i> Logout</a></li>
-        </ul>
+    <div class="container">
+      <a class="navbar-brand" href="/">🛡️ ZTN TenantKit</a>
+      {% if session.get("access_token") %}
+      <div class="ms-auto d-flex align-items-center gap-2">
+  
+        <!-- Profile Dropdown -->
+        <div class="dropdown">
+          <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="fa fa-user-circle"></i> {{ session.get("role", "User")|capitalize }}
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="{{ url_for('auth.user_profile') }}"><i class="fa fa-cog me-2"></i> My
+                Profile</a></li>
+            <li>
+              <hr class="dropdown-divider" />
+            </li>
+            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="fa fa-sign-out-alt me-2"></i>
+                Logout</a></li>
+          </ul>
+        </div>
+  
+        <!--  Trust Score Badge -->
+        {% if session.get("trust_score") is not none %}
+        {% set score = session.get("trust_score")|float %}
+        {% if score >= 0.7 %}
+        {% set badge_class = "bg-success" %}
+        {% set level = "High" %}
+        {% elif score >= 0.4 %}
+        {% set badge_class = "bg-warning text-dark" %}
+        {% set level = "Medium" %}
+        {% else %}
+        {% set badge_class = "bg-danger" %}
+        {% set level = "Low" %}
+        {% endif %}
+        <a href="{{ url_for('auth.trust_info') }}" class="badge {{ badge_class }} ms-2 align-self-center text-decoration-none">
+          🔐 {{ "%.2f"|format(score) }} Trust ({{ level }})
+        </a>
+        {% endif %}
+  
       </div>
+      {% endif %}
     </div>
-    {% endif %}
-
-  </div>
-</nav>
+  </nav>
 
   <!-- Page Content -->
   <main class="container">
