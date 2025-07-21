@@ -27,11 +27,6 @@ def create_app(config_class=DevelopmentConfig):
     jwt.init_app(app)
     migrate.init_app(app, db)
 
-    # # ✅ Force model registration inside app context
-    # with app.app_context():
-    #     import hospital_core.models  # 👈 this is key
-    #     print("📦 Registered Models:", db.metadata.tables.keys())  # debug log
-
     # Register Blueprints/routes
     register_routes(app)
 
