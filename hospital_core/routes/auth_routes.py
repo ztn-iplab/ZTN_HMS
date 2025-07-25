@@ -1097,6 +1097,7 @@ def enforce_mfa_policy():
         )
         return jsonify(res.json()), res.status_code
 
+
 @auth_bp.route("/trust-info")
 def trust_info():
     return render_template("auth/trust_info.html")

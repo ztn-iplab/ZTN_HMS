@@ -61,7 +61,7 @@ def manage_appointments():
     return render_template("records/manage_appointments.html")
 
 @dashboard_bp.route("/appointments")
-@protect_role("any")
+@protect_role("nurse")
 def view_appointments():
     if session.get("role") not in ["doctor", "nurse"]:
         flash("Access denied.", "danger")
@@ -69,7 +69,7 @@ def view_appointments():
     return render_template("records/view.html")
 
 @dashboard_bp.route("/patients/info")
-@protect_role("any")
+@protect_role("nurse")
 def view_patient_details():
     return render_template("patients/view_patients.html")
 

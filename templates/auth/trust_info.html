@@ -1,34 +1,60 @@
 {% extends "base.html" %}
 
-{% block title %}Trust Score Information{% endblock %}
+{% block title %}Risk Score Information{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h3 class="mb-3">🔐 Understanding Your Trust Score</h3>
+    <h3 class="mb-3">🔐 Understanding Your Risk Score</h3>
     <p class="lead">
-        The Trust Score reflects the system's confidence in your identity and behavior during login.
-        It helps protect sensitive data by enforcing security policies dynamically.
+        The Risk Score reflects how much risk your login behavior presents to the system.
+        It helps enforce Zero Trust security by adjusting authentication and access policies in real time.
     </p>
 
-    <h5 class="mt-4">🧮 How the Trust Score Is Calculated</h5>
+    <h5 class="mt-4">📊 How the Risk Score Is Calculated</h5>
     <ul>
-        <li><strong>✅ Multi-Factor Authentication:</strong> Using TOTP or WebAuthn increases your trust.</li>
-        <li><strong>📍 Known Device & IP:</strong> Logging in from familiar devices improves trust.</li>
-        <li><strong>❌ Failed Logins:</strong> Multiple failed attempts lower your trust score.</li>
-        <li><strong>🆕 New Devices:</strong> First-time logins from unrecognized environments reduce trust.</li>
-        <li><strong>🔐 Custom Rules:</strong> Your organization may apply additional trust policies.</li>
+        <li><strong>❗ New Devices & IPs:</strong> Logging in from unfamiliar devices or IP addresses increases risk.
+        </li>
+        <li><strong>⏰ Odd Login Hours:</strong> Logging in during suspicious hours (e.g., 1–4 AM) may increase risk.
+        </li>
+        <li><strong>🌍 Low Trust Region:</strong> If your previous behavior or region had low trust, risk is increased.
+        </li>
+        <li><strong>🔁 Frequent Logins:</strong> Unusually frequent logins within a short time span may indicate a
+            threat.</li>
+        <li><strong>🛡️ Tenant-Specific Rules:</strong> Your organization may define additional risk policies.</li>
     </ul>
 
-    <h5 class="mt-4">🔒 How Trust Score Affects Access</h5>
-    <ul>
-        <li><strong>🩺 View Sensitive Records:</strong> Requires trust ≥ <code>0.7</code></li>
-        <li><strong>⚠️ Medium Trust:</strong> You may be required to complete additional verification</li>
-        <li><strong>🚫 Low Trust:</strong> Some actions may be blocked until trust is improved</li>
-    </ul>
+    <h5 class="mt-4">🔒 How Risk Score Affects Your Access</h5>
+    <table class="table table-bordered mt-3">
+        <thead class="table-light">
+            <tr>
+                <th>Risk Score Range</th>
+                <th>Level</th>
+                <th>System Behavior</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>0.00 – 0.39</code></td>
+                <td>🟢 Low Risk</td>
+                <td>Seamless access or minimal MFA</td>
+            </tr>
+            <tr>
+                <td><code>0.40 – 0.69</code></td>
+                <td>🟡 Medium Risk</td>
+                <td>Enforce MFA (TOTP, WebAuthn), raise internal suspicion</td>
+            </tr>
+            <tr>
+                <td><code>0.70 – 1.00</code></td>
+                <td>🔴 High Risk</td>
+                <td>Block access, log anomaly, force re-verification or lock account</td>
+            </tr>
+        </tbody>
+    </table>
 
     <div class="alert alert-info mt-4">
-        <strong>Tip:</strong> You can improve your trust score by enabling MFA, using familiar devices, and avoiding
-        suspicious login behavior.
+        <strong>Note:</strong> Risk Scores are recalculated each time you log in, based on your device, location, time,
+        and behavior.
+        To stay safe, use trusted devices, log in at regular hours, and enable MFA.
     </div>
 </div>
 {% endblock %}

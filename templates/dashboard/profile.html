@@ -12,7 +12,7 @@
           <select name="preferred_mfa" id="preferred_mfa" class="form-select" required>
             <option value="totp" {% if mfa == 'totp' %}selected{% endif %}>TOTP</option>
             <option value="webauthn" {% if mfa == 'webauthn' %}selected{% endif %}>WebAuthn</option>
-            <option value="both" {% if mfa == 'both' %}selected{% endif %}>Both</option>
+            <option value="both" {% if mfa == 'both' %}selected{% endif %}>Both(Recommended)</option>
           </select>
           {% if session.get("role") == "admin" %}
             <hr class="my-4">

@@ -64,24 +64,26 @@
           </ul>
         </div>
   
-        <!--  Trust Score Badge -->
+        <!-- 🔐 Trust Score Badge -->
         {% if session.get("trust_score") is not none %}
         {% set score = session.get("trust_score")|float %}
+        
         {% if score >= 0.7 %}
-        {% set badge_class = "bg-success" %}
-        {% set level = "High" %}
+        {% set badge_class = "bg-danger" %}
+        {% set level = "High Risk" %}
         {% elif score >= 0.4 %}
         {% set badge_class = "bg-warning text-dark" %}
-        {% set level = "Medium" %}
+        {% set level = "Medium Risk" %}
         {% else %}
-        {% set badge_class = "bg-danger" %}
-        {% set level = "Low" %}
+        {% set badge_class = "bg-success" %}
+        {% set level = "Low Risk" %}
         {% endif %}
+        
         <a href="{{ url_for('auth.trust_info') }}" class="badge {{ badge_class }} ms-2 align-self-center text-decoration-none">
           🔐 {{ "%.2f"|format(score) }} Trust ({{ level }})
         </a>
         {% endif %}
-  
+
       </div>
       {% endif %}
     </div>
