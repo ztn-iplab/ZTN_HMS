@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Approve Login{% endblock %}
+
+{% block content %}
+<div class="container py-5 d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+  <div class="card shadow-lg p-4" style="max-width: 520px; width: 100%;">
+    <div class="text-center mb-3">
+      <div style="font-size: 2rem;">✅</div>
+      <h4 class="mb-2">Approve This Login</h4>
+      <p class="text-muted mb-0">
+        Open ZT-Authenticator and approve the request to continue.
+      </p>
+    </div>
+
+    <div class="alert alert-info text-center" role="alert" id="approval-status">
+      Waiting for device approval…
+    </div>
+    <p class="text-center text-muted mb-0" id="approval-countdown">
+      Request expires in -- seconds.
+    </p>
+    <p class="text-center text-muted mt-2 mb-0" id="totp-countdown">
+      Current TOTP window ends in -- seconds.
+    </p>
+    <p class="text-center text-muted mt-2 mb-0" id="approval-hint">
+      Approvals must arrive before the current TOTP code expires.
+    </p>
+
+    <div class="d-flex justify-content-between mt-3">
+      <a class="btn btn-outline-secondary" href="{{ url_for('auth.verify_totp') }}">Back</a>
+      <div class="d-flex gap-2">
+        <button id="resend-approval" class="btn btn-outline-primary">Resend</button>
+        <button id="cancel-approval" class="btn btn-outline-danger">Cancel</button>
+        <button id="retry-approval" class="btn btn-danger">Retry Check</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/device_approval.js') }}"></script>
+{% endblock %}

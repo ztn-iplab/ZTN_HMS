@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const container = document.getElementById("qr-container");
   const manualKey = document.getElementById("manual-key");
   const continueBtn = document.getElementById("confirm-totp-btn");
+  const copyBtn = document.getElementById("copy-manual-key");
   fetch("/auth/setup-totp", {
     method: "GET",
     credentials: "same-origin",
@@ -31,16 +32,52 @@ document.addEventListener("DOMContentLoaded", () => {
         container.innerHTML = "";
         container.appendChild(img);
         manualKey.innerText = data.manual_key;
+        if (copyBtn) {
+          copyBtn.disabled = false;
+        }
       } else {
         container.innerHTML = `<p>${data.message || "TOTP already set up."}</p>`;
         manualKey.innerText = "-";
+        if (copyBtn) {
+          copyBtn.disabled = true;
+        }
       }
     })
     .catch((err) => {
       console.error("❌ Error:", err);
       container.innerHTML = `<p style="color:red;">${err.message}</p>`;
       manualKey.innerText = "-";
+      if (copyBtn) {
+        copyBtn.disabled = true;
+      }
     });
+
+  if (copyBtn) {
+    copyBtn.addEventListener("click", async () => {
+      const value = manualKey.innerText.trim();
+      if (!value || value === "-") {
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(value);
+        Toastify({
+          text: "Enrollment link copied.",
+          duration: 2500,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#43a047",
+        }).showToast();
+      } catch (err) {
+        Toastify({
+          text: "Copy failed. Please select and copy manually.",
+          duration: 3000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "red",
+        }).showToast();
+      }
+    });
+  }
 
   continueBtn.addEventListener("click", async () => {
     const confirm = window.confirm("Have you scanned the QR or added the key?");

@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const password = form.querySelector('[name="password"]').value;
 
     try {
-      const res = await fetch("/auth/verify-fallback-totp", {
+      const res = await fetch("/auth/verify-totp-reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password }),
@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
           duration: 3500,
           gravity: "top",
           position: "right",
-          backgroundColor: "#2962ff",
+          style: { background: "#2962ff" },
         }).showToast();
 
         return await triggerWebAuthnFlow(password); // Will retry backend once passed
@@ -34,11 +34,11 @@ document.addEventListener("DOMContentLoaded", () => {
       // ❌ Error
       if (!res.ok) {
         Toastify({
-          text: `❌ ${data.error || "Verification failed."}`,
+          text: `❌ ${data.error || data.detail || "Verification failed."}`,
           duration: 3000,
           gravity: "top",
           position: "right",
-          backgroundColor: "#e53935",
+          style: { background: "#e53935" },
         }).showToast();
         return;
       }
@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
         duration: 3000,
         gravity: "top",
         position: "right",
-        backgroundColor: "#43a047",
+        style: { background: "#43a047" },
       }).showToast();
 
       form.reset();
@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
         duration: 3000,
         gravity: "top",
         position: "right",
-        backgroundColor: "#e53935",
+        style: { background: "#e53935" },
       }).showToast();
     }
   });
@@ -112,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(result.error || "WebAuthn reset verification failed.");
 
       //  Now retry the actual reset
-      const retry = await fetch("/auth/verify-fallback-totp", {
+      const retry = await fetch("/auth/verify-totp-reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password }),
@@ -128,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
         duration: 3000,
         gravity: "top",
         position: "right",
-        backgroundColor: "#43a047",
+        style: { background: "#43a047" },
       }).showToast();
 
       setTimeout(() => (window.location.href = "/auth/login"), 2000);
@@ -139,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
         duration: 3000,
         gravity: "top",
         position: "right",
-        backgroundColor: "#e53935",
+        style: { background: "#e53935" },
       }).showToast();
     }
   }

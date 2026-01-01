@@ -1,4 +1,118 @@
+:root {
+  --hms-red: #d83a56;
+  --hms-red-dark: #b02a37;
+  --hms-ink: #1a1b2f;
+  --hms-slate: #6b7280;
+  --hms-card: #ffffff;
+  --hms-shadow: 0 18px 45px rgba(14, 19, 45, 0.15);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: "Manrope", sans-serif;
+  background: radial-gradient(circle at top, #fdf2f4 0%, #f7f3f7 45%, #eef1f7 100%);
+  color: var(--hms-ink);
+  display: flex;
+  flex-direction: column;
+}
+
+main.container {
+  flex: 1 0 auto;
+  padding-top: 1.5rem;
+  padding-bottom: 2.5rem;
+}
+
+.navbar-custom {
+  background: linear-gradient(120deg, #1f203d 0%, #2b2d55 40%, #3a1f2e 100%);
+  box-shadow: 0 12px 30px rgba(11, 14, 40, 0.35);
+}
+
+.navbar-custom .navbar-brand,
+.navbar-custom .nav-link,
+.navbar-custom .nav-item {
+  color: #f8fafc !important;
+  font-family: "Space Grotesk", sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.navbar-brand {
+  font-weight: 700;
+}
+
+.card {
+  border: none;
+  border-radius: 20px;
+  box-shadow: var(--hms-shadow);
+}
+
+.card-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.card.shadow-sm {
+  box-shadow: var(--hms-shadow) !important;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, var(--hms-red), var(--hms-red-dark));
+  border: none;
+  box-shadow: 0 12px 20px rgba(216, 58, 86, 0.25);
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #e24b66, #a52431);
+}
+
+.btn-outline-light {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.form-control {
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 0.7rem 0.9rem;
+}
+
+.form-control:focus {
+  border-color: #f0a0b2;
+  box-shadow: 0 0 0 0.2rem rgba(216, 58, 86, 0.15);
+}
+
+.auth-shell {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.auth-card {
+  border-radius: 24px;
+  padding: 24px;
+  background: var(--hms-card);
+  box-shadow: var(--hms-shadow);
+}
+
+.auth-title {
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--hms-ink);
+}
+
+.auth-subtitle {
+  color: var(--hms-slate);
+}
+
+footer {
+  background-color: #161827;
+  color: #cbd5f5;
+  text-align: center;
+  padding: 1rem 0;
+  flex-shrink: 0;
+}
+
 .gradient-header {
-  background: linear-gradient(45deg, #dc3545, #b02a37);  /* Soft red gradient */
+  background: linear-gradient(45deg, var(--hms-red), var(--hms-red-dark));
   color: white;
 }

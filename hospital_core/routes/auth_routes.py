@@ -1,4 +1,7 @@
 from flask import Blueprint, session, jsonify, request, flash, redirect, url_for, render_template
+import csv
+import os
+from datetime import datetime, timezone
 import requests
 import urllib3
 from flask import current_app
@@ -83,6 +86,90 @@ def logout():
     return redirect(url_for("auth.login"))
 
 
+@auth_bp.route("/telemetry", methods=["POST"])
+def telemetry_capture():
+    payload = request.get_json(silent=True) or {}
+    batch = payload.get("batch")
+    if not batch:
+        batch = [payload] if payload else []
+
+    if not batch:
+        return jsonify({"status": "ignored"}), 200
+
+    output_dir = os.getenv("HMS_TELEMETRY_DIR", os.path.join(os.getcwd(), "data"))
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.getenv(
+        "HMS_TELEMETRY_CSV",
+        os.path.join(output_dir, "hms_telemetry.csv"),
+    )
+
+    fieldnames = [
+        "timestamp",
+        "session_id",
+        "session_label",
+        "page",
+        "title",
+        "referrer",
+        "viewport_w",
+        "viewport_h",
+        "screen_w",
+        "screen_h",
+        "timezone_offset",
+        "language",
+        "online",
+        "connection_type",
+        "event_type",
+        "element_tag",
+        "element_id",
+        "element_name",
+        "element_classes",
+        "value",
+        "key",
+        "button",
+        "x",
+        "y",
+        "duration_ms",
+        "load_ms",
+        "scroll_depth",
+        "click_count",
+        "input_count",
+        "key_count",
+        "idle_ms",
+        "user_id",
+        "role",
+        "trust_score",
+        "ip_address",
+        "user_agent",
+    ]
+
+    user_id = session.get("user_id")
+    role = session.get("role")
+    trust_score = session.get("trust_score")
+    ip_address = request.headers.get("X-Forwarded-For") or request.remote_addr
+    user_agent = request.headers.get("User-Agent", "")
+
+    file_exists = os.path.exists(output_path)
+    with open(output_path, "a", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        if not file_exists:
+            writer.writeheader()
+
+        for item in batch:
+            if not isinstance(item, dict):
+                continue
+            row = {key: item.get(key, "") for key in fieldnames}
+            if not row.get("timestamp"):
+                row["timestamp"] = datetime.now(timezone.utc).isoformat()
+            row["user_id"] = user_id or row.get("user_id", "")
+            row["role"] = role or row.get("role", "")
+            row["trust_score"] = trust_score if trust_score is not None else row.get("trust_score", "")
+            row["ip_address"] = ip_address or row.get("ip_address", "")
+            row["user_agent"] = user_agent or row.get("user_agent", "")
+            writer.writerow(row)
+
+    return jsonify({"status": "ok"}), 200
+
+
 # TOTP Section
 @auth_bp.route("/setup-totp-page", methods=["GET"])
 def setup_totp_page():
@@ -159,6 +246,19 @@ def verify_totp_post():
         if response.status_code == 200:
             session["totp_verified"] = True
             session["user_id"] = data.get("user_id")
+            session["require_webauthn"] = data.get("require_webauthn", session.get("require_webauthn", False))
+            session["has_webauthn_credentials"] = data.get(
+                "has_webauthn_credentials", session.get("has_webauthn_credentials", False)
+            )
+
+            requires_device_approval = bool(data.get("require_device_approval") or data.get("login_id"))
+            if requires_device_approval:
+                login_id = data.get("login_id")
+                if not login_id:
+                    flash("Missing device approval context. Please retry login.", "danger")
+                    return redirect(url_for("auth.verify_totp"))
+                session["pending_login_id"] = login_id
+                return redirect(url_for("auth.device_approval_page"))
 
             # Use session instead of IAM's response
             if session.get("require_webauthn"):
@@ -193,6 +293,110 @@ def verify_totp_post():
         print("❌ verify_totp_post error:", e)
         flash("Error verifying TOTP. Try again.", "danger")
         return redirect(url_for("auth.verify_totp"))
+
+
+@auth_bp.route("/device-approval", methods=["GET"])
+def device_approval_page():
+    if not session.get("pending_login_id"):
+        flash("No pending device approval found.", "warning")
+        return redirect(url_for("auth.verify_totp"))
+    return render_template("auth/device_approval.html")
+
+
+@auth_bp.route("/device-approval/status", methods=["GET"])
+def device_approval_status():
+    login_id = session.get("pending_login_id")
+    if not login_id:
+        return jsonify({"status": "none"}), 200
+
+    try:
+        res = requests.get(
+            f"{current_app.config['ZTN_IAM_URL']}/login/status",
+            headers={
+                "X-API-KEY": current_app.config["API_KEY"],
+                "Content-Type": "application/json",
+            },
+            params={"login_id": login_id},
+            verify=False,
+        )
+        data = res.json()
+        status = data.get("status")
+        if status == "pending":
+            return jsonify(
+                {
+                    "status": "pending",
+                    "expires_in": data.get("expires_in"),
+                }
+            ), 200
+        if status == "ok":
+            session.pop("pending_login_id", None)
+            require_webauthn = session.get("require_webauthn")
+            has_webauthn_credentials = session.get("has_webauthn_credentials")
+            if require_webauthn:
+                if has_webauthn_credentials:
+                    return jsonify({"status": "ok", "redirect": url_for("auth.verify_webauthn_page")})
+                return jsonify({"status": "ok", "redirect": url_for("auth.setup_webauthn")})
+
+            role = session.get("role")
+            if role == "admin":
+                return jsonify({"status": "ok", "redirect": url_for("dashboard.admin_dashboard")})
+            if role == "doctor":
+                return jsonify({"status": "ok", "redirect": url_for("dashboard.doctor_dashboard")})
+            if role == "nurse":
+                return jsonify({"status": "ok", "redirect": url_for("dashboard.nurse_dashboard")})
+            return jsonify({"status": "ok", "redirect": url_for("dashboard.home")})
+
+        if status in {"denied", "expired"}:
+            session.pop("pending_login_id", None)
+        return jsonify({"status": status}), res.status_code
+    except Exception as e:
+        return jsonify({"status": "error", "detail": str(e)}), 500
+
+
+@auth_bp.route("/device-approval/cancel", methods=["POST"])
+def device_approval_cancel():
+    login_id = session.pop("pending_login_id", None)
+    if not login_id:
+        return jsonify({"status": "none"}), 200
+
+    try:
+        requests.post(
+            f"{current_app.config['ZTN_IAM_URL']}/login/deny",
+            headers={
+                "X-API-KEY": current_app.config["API_KEY"],
+                "Content-Type": "application/json",
+            },
+            json={"login_id": login_id},
+            verify=False,
+        )
+    except Exception:
+        pass
+
+    return jsonify({"status": "cancelled"}), 200
+
+
+@auth_bp.route("/device-approval/resend", methods=["POST"])
+def device_approval_resend():
+    login_id = session.get("pending_login_id")
+    if not login_id:
+        return jsonify({"status": "none"}), 200
+
+    try:
+        res = requests.post(
+            f"{current_app.config['ZTN_IAM_URL']}/login/resend",
+            headers={
+                "X-API-KEY": current_app.config["API_KEY"],
+                "Content-Type": "application/json",
+            },
+            json={"login_id": login_id},
+            verify=False,
+        )
+        data = res.json()
+        if res.ok and data.get("login_id"):
+            session["pending_login_id"] = data.get("login_id")
+        return jsonify(data), res.status_code
+    except Exception as e:
+        return jsonify({"status": "error", "detail": str(e)}), 500
 
 
 @auth_bp.route("/reset-totp", methods=["GET"])
@@ -233,7 +437,7 @@ def request_totp_reset():
             },
             json={
                 "identifier": identifier,
-                "redirect_url": "https://localhost.localdomain:5000/auth/reset-totp"
+                "redirect_url": f"{request.host_url.rstrip('/')}/auth/reset-totp"
             },
             verify=False
         )
@@ -260,7 +464,7 @@ def verify_fallback_totp():
             session_obj.cookies = requests.utils.cookiejar_from_dict(session["iam_reset_cookies"])
 
         response = session_obj.post(
-            f"{current_app.config['ZTN_IAM_URL']}/verify-totp-reset",
+            f"{current_app.config['ZTN_IAM_URL']}/verify-fallback-totp",
             headers={
                 "X-API-KEY": current_app.config["API_KEY"],
                 "Content-Type": "application/json"
@@ -276,6 +480,37 @@ def verify_fallback_totp():
 
     except Exception as e:
         print("❌ verify_fallback_totp error:", e)
+        return jsonify({"error": f"Exception occurred: {str(e)}"}), 500
+
+
+@auth_bp.route("/verify-totp-reset", methods=["POST"])
+def verify_totp_reset():
+    data = request.get_json()
+
+    try:
+        session_obj = requests.Session()
+
+        # Forward IAM session cookies
+        if "iam_reset_cookies" in session:
+            session_obj.cookies = requests.utils.cookiejar_from_dict(session["iam_reset_cookies"])
+
+        response = session_obj.post(
+            f"{current_app.config['ZTN_IAM_URL']}/verify-totp-reset",
+            headers={
+                "X-API-KEY": current_app.config["API_KEY"],
+                "Content-Type": "application/json"
+            },
+            json=data,
+            verify=False
+        )
+
+        # Save back updated IAM session cookies
+        session["iam_reset_cookies"] = requests.utils.dict_from_cookiejar(session_obj.cookies)
+
+        return jsonify(response.json()), response.status_code
+
+    except Exception as e:
+        print("❌ verify_totp_reset error:", e)
         return jsonify({"error": f"Exception occurred: {str(e)}"}), 500
 
 # WebAutn Section
@@ -496,7 +731,7 @@ def forgot_password():
             },
             json={
                 "identifier": identifier,
-                "redirect_url": "https://localhost.localdomain:5000/auth/reset-password"
+                "redirect_url": f"{request.host_url.rstrip('/')}/auth/reset-password"
             },
             verify=False
         )
@@ -597,7 +832,7 @@ def request_webauthn_reset():
             },
             json={
                 "identifier": identifier,
-                "redirect_url": "https://localhost.localdomain:5000/auth/verify-webauthn-reset"
+                "redirect_url": f"{request.host_url.rstrip('/')}/auth/verify-webauthn-reset"
             },
             verify=False
         )

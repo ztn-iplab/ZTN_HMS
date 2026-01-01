@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (!res.ok) {
-        showToast(`❌ ${data.error || 'Password reset failed.'}`, "error");
+      showToast(`❌ ${data.error || data.detail || 'Password reset failed.'}`, "error");
         return;
       }
 
@@ -119,7 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "TOTP verification failed.");
+      if (!res.ok)
+        throw new Error(result.error || result.detail || "TOTP verification failed.");
 
       return await retryPasswordReset(token, newPassword, confirmPassword);
 
@@ -181,12 +182,14 @@ document.addEventListener('DOMContentLoaded', () => {
       duration: 3000,
       gravity: "top",
       position: "right",
-      backgroundColor:
-        type === "success"
-          ? "#43a047"
-          : type === "error"
-          ? "#e53935"
-          : "#2962ff"
+      style: {
+        background:
+          type === "success"
+            ? "#43a047"
+            : type === "error"
+            ? "#e53935"
+            : "#2962ff",
+      },
     }).showToast();
   }
 });

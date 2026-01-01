@@ -5,3 +5,7 @@ localhost.localdomain.key
 *.crt
 *.key
 .env
+__pycache__/
+*.pyc
+data/
+*.log
