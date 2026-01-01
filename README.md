@@ -164,7 +164,7 @@ This starts the HTTPS development server defined in `main.py`, which references 
 chmod +x run.sh
 ./run.sh
 ```
-The script pins the host name (`localhost.localdomain`) to match the provided certificate subject.
+The script pins the host name (`<local-host>`) to match the provided certificate subject.
 
 ---
 
