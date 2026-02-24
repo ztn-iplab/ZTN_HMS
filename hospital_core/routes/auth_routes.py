@@ -1,6 +1,7 @@
 from flask import Blueprint, session, jsonify, request, flash, redirect, url_for, render_template
 import csv
 import os
+import uuid
 from datetime import datetime, timezone
 import requests
 import urllib3
@@ -10,6 +11,90 @@ import json
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+
+def _resolve_aig_observation_batch_url() -> str | None:
+    explicit = (current_app.config.get("ZTN_AIG_OBSERVATIONS_BATCH_URL") or "").strip()
+    if explicit:
+        return explicit
+
+    base = (current_app.config.get("ZTN_IAM_URL") or "").rstrip("/")
+    if not base:
+        return None
+
+    # HMS typically uses ZTN_IAM_URL ending in /api/v1
+    if base.endswith("/api/v1"):
+        return f"{base}/aig/observations/batch"
+    if base.endswith("/api/v1/auth"):
+        return f"{base[:-5]}/aig/observations/batch"
+    return f"{base}/aig/observations/batch"
+
+
+def _telemetry_event_to_observation(
+    item,
+    *,
+    correlation_id,
+    experiment_run_id,
+    actor_label,
+    participant_id,
+    user_id,
+    role,
+    trust_score,
+):
+    event_type = (item.get("event_type") or "unknown").strip() or "unknown"
+
+    evidence_map = {
+        "page_view": 0.75,
+        "click": 0.80,
+        "form_submit": 0.85,
+        "input_change": 0.78,
+        "scroll": 0.70,
+        "tab_visible": 0.65,
+        "tab_hidden": 0.45,
+        "error": 0.25,
+        "page_exit": 0.55,
+    }
+    evidence_value = evidence_map.get(event_type, 0.50)
+    reliability = 0.60  # client-side telemetry is useful but not authoritative
+    weight = 0.30
+
+    metadata_json = {
+        "page": item.get("page"),
+        "title": item.get("title"),
+        "event_type": event_type,
+        "element_tag": item.get("element_tag"),
+        "element_id": item.get("element_id"),
+        "element_name": item.get("element_name"),
+        "x": item.get("x"),
+        "y": item.get("y"),
+        "duration_ms": item.get("duration_ms"),
+        "load_ms": item.get("load_ms"),
+        "scroll_depth": item.get("scroll_depth"),
+        "idle_ms": item.get("idle_ms"),
+        "session_label": item.get("session_label"),
+        "role": role,
+        "participant_id": participant_id,
+        "trust_score": trust_score,
+    }
+
+    return {
+        "source_family": "interaction",
+        "source_name": "hms_browser_telemetry",
+        "signal_key": event_type,
+        "evidence_value": evidence_value,
+        "weight": weight,
+        "reliability": reliability,
+        "observed_at": item.get("timestamp"),
+        "session_id": item.get("session_id"),
+        "session_label": item.get("session_label"),
+        "correlation_id": correlation_id,
+        "experiment_run_id": experiment_run_id,
+        "actor_label": actor_label or item.get("session_label") or role or "unknown",
+        "user_id": user_id,
+        "resource_type": "hms_page",
+        "resource_id": item.get("page") or "",
+        "metadata_json": metadata_json,
+    }
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -40,6 +125,7 @@ def login():
                 session["role"] = data.get("role")
                 session["user_id"] = data.get("user_id")
                 session["trust_score"] = data.get("trust_score") 
+                session["aig_session_id"] = session.get("aig_session_id") or str(uuid.uuid4())
 
                 # Store MFA flags in session
                 session["require_totp"] = data.get("require_totp", False)
@@ -145,6 +231,8 @@ def telemetry_capture():
     user_id = session.get("user_id")
     role = session.get("role")
     trust_score = session.get("trust_score")
+    if user_id and not session.get("aig_session_id"):
+        session["aig_session_id"] = str(uuid.uuid4())
     ip_address = request.headers.get("X-Forwarded-For") or request.remote_addr
     user_agent = request.headers.get("User-Agent", "")
 
@@ -167,7 +255,102 @@ def telemetry_capture():
             row["user_agent"] = user_agent or row.get("user_agent", "")
             writer.writerow(row)
 
+    # Best-effort forwarding of normalized interaction observations into ZT-IAM AIg logs.
+    # This is intentionally non-blocking so UI telemetry never breaks the HMS flow.
+    aig_url = _resolve_aig_observation_batch_url()
+    api_key = (current_app.config.get("API_KEY") or "").strip()
+    if aig_url and api_key and user_id:
+        try:
+            exp_run_id = session.get("aig_experiment_run_id")
+            exp_actor_label = session.get("aig_actor_label")
+            exp_participant_id = session.get("aig_participant_id")
+            observations = [
+                _telemetry_event_to_observation(
+                    item,
+                    correlation_id=session.get("aig_session_id"),
+                    experiment_run_id=exp_run_id,
+                    actor_label=exp_actor_label,
+                    participant_id=exp_participant_id,
+                    user_id=user_id,
+                    role=role,
+                    trust_score=trust_score,
+                )
+                for item in batch
+                if isinstance(item, dict)
+            ]
+            if observations:
+                requests.post(
+                    aig_url,
+                    json={"observations": observations},
+                    headers={
+                        "X-API-Key": api_key,
+                        "Content-Type": "application/json",
+                    },
+                    verify=False,
+                    timeout=3,
+                )
+        except Exception as exc:
+            current_app.logger.warning("AIg telemetry forward failed: %s", exc)
+
     return jsonify({"status": "ok"}), 200
+
+
+@auth_bp.route("/aig-experiment", methods=["GET", "POST", "DELETE"])
+def aig_experiment_session():
+    if request.method == "GET":
+        return jsonify(
+            {
+                "status": "ok",
+                "active": bool(session.get("aig_experiment_run_id")),
+                "experiment_run_id": session.get("aig_experiment_run_id"),
+                "actor_label": session.get("aig_actor_label"),
+                "participant_id": session.get("aig_participant_id"),
+                "scenario_label": session.get("aig_scenario_label"),
+                "aig_session_id": session.get("aig_session_id"),
+            }
+        ), 200
+
+    if request.method == "DELETE":
+        for key in ("aig_experiment_run_id", "aig_actor_label", "aig_scenario_label", "aig_participant_id"):
+            session.pop(key, None)
+        return jsonify({"status": "ok", "active": False}), 200
+
+    payload = request.get_json(silent=True) or {}
+    experiment_run_id = (payload.get("experiment_run_id") or "").strip()
+    actor_label = (payload.get("actor_label") or "").strip()
+    scenario_label = (payload.get("scenario_label") or "").strip()
+    participant_id = (payload.get("participant_id") or "").strip()
+    reset_session = bool(payload.get("reset_aig_session"))
+
+    if not experiment_run_id:
+        experiment_run_id = f"hms-manual-{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+
+    session["aig_experiment_run_id"] = experiment_run_id
+    if actor_label:
+        session["aig_actor_label"] = actor_label
+    elif "aig_actor_label" not in session:
+        session["aig_actor_label"] = "hms_manual_user"
+    if scenario_label:
+        session["aig_scenario_label"] = scenario_label
+    if participant_id:
+        session["aig_participant_id"] = participant_id
+    if reset_session or not session.get("aig_session_id"):
+        session["aig_session_id"] = str(uuid.uuid4())
+
+    return (
+        jsonify(
+            {
+                "status": "ok",
+                "active": True,
+                "experiment_run_id": session.get("aig_experiment_run_id"),
+                "actor_label": session.get("aig_actor_label"),
+                "participant_id": session.get("aig_participant_id"),
+                "scenario_label": session.get("aig_scenario_label"),
+                "aig_session_id": session.get("aig_session_id"),
+            }
+        ),
+        200,
+    )
 
 
 # TOTP Section

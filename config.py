@@ -10,6 +10,8 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     ZTN_IAM_URL = os.getenv("ZTN_IAM_URL")
     API_KEY = os.getenv("API_KEY")
+    ZTN_AIG_AUTHORIZE_URL = os.getenv("ZTN_AIG_AUTHORIZE_URL")
+    ZTN_AIG_OBSERVATIONS_BATCH_URL = os.getenv("ZTN_AIG_OBSERVATIONS_BATCH_URL")
 
     # JWT Configuration for Cookie-based Auth
     JWT_TOKEN_LOCATION = ['cookies']

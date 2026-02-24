@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, session, redirect, url_for, flash
+from utils.decorators import aig_required
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -50,6 +51,7 @@ def system_metrics():
 
 @dashboard_bp.route("/patients/view")
 @protect_role("doctor")
+@aig_required("view_patient_list", action_class="ehr_read", threshold=0.65)
 def view_patients():
     from hospital_core.models import Patient
     patients = Patient.query.all()
@@ -57,11 +59,13 @@ def view_patients():
 
 @dashboard_bp.route("/appointments/manage")
 @protect_role("doctor")
+@aig_required("manage_appointments", action_class="clinical_schedule", threshold=0.65)
 def manage_appointments():
     return render_template("records/manage_appointments.html")
 
 @dashboard_bp.route("/appointments")
 @protect_role("nurse")
+@aig_required("view_appointments", action_class="clinical_schedule", threshold=0.6)
 def view_appointments():
     if session.get("role") not in ["doctor", "nurse"]:
         flash("Access denied.", "danger")
@@ -70,6 +74,6 @@ def view_appointments():
 
 @dashboard_bp.route("/patients/info")
 @protect_role("nurse")
+@aig_required("view_patient_details", action_class="ehr_read", threshold=0.7)
 def view_patient_details():
     return render_template("patients/view_patients.html")
-
