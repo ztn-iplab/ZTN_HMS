@@ -1,6 +1,6 @@
 # ZTN_HMS — Zero Trust Hospital Management Service
 
-This repository contains the Hospital Management Service (HMS) that pairs with the `ZTN_SIM` project to showcase Zero Trust Identity and Access Management (IAM) as an API-first service. The HMS is a research-grade Flask web application that consumes the Zero Trust IAM gateway for authentication, MFA, and adaptive risk scoring while it manages electronic health records (EHR)-style data such as patients, appointments, diagnoses, and nursing interactions. The goal of this README is to make the experiment reproducible across research environments and to document the moving parts needed to validate the IAM flows end-to-end.
+This repository contains the Hospital Management Service (HMS) that pairs with the `ZT_IAM` project to showcase Zero Trust Identity and Access Management (IAM) as an API-first service. The HMS is a research-grade Flask web application that consumes the Zero Trust IAM gateway for authentication, MFA, and adaptive risk scoring while it manages electronic health records (EHR)-style data such as patients, appointments, diagnoses, and nursing interactions. The goal of this README is to make the experiment reproducible across research environments and to document the moving parts needed to validate the IAM flows end-to-end.
 
 ---
 
@@ -23,8 +23,8 @@ This repository contains the Hospital Management Service (HMS) that pairs with t
 
 | Component | Purpose |
 | --- | --- |
-| `hospital_core` Flask application | Hosts dashboards for admins, doctors, and nurses. Routes under `hospital_core/routes/` enforce role-based access control that depends on the ZTN IAM-issued session data. |
-| Zero Trust IAM API (`ZTN_SIM` backend) | Provides `/login`, `/verify-totp-login`, `/enroll-totp`, `/setup-totp/confirm`, and WebAuthn endpoints that deliver access tokens, trust scores, and MFA policy decisions consumed by `auth_routes.py`. |
+| `hospital_core` Flask application | Hosts dashboards for admins, doctors, and nurses. Routes under `hospital_core/routes/` enforce role-based access control that depends on the ZT IAM-issued session data. |
+| Zero Trust IAM API (`ZT_IAM` backend) | Provides `/login`, `/verify-totp-login`, `/enroll-totp`, `/setup-totp/confirm`, and WebAuthn endpoints that deliver access tokens, trust scores, and MFA policy decisions consumed by `auth_routes.py`. |
 | PostgreSQL (`hospital_db`) | Persists local hospital data models (`hospital_core/models.py`) for patients, staff, appointments, diagnoses, and treatments. |
 | TLS certificates (`certs/`) | Local development certificates referenced by `main.py` and `run.sh` to serve HTTPS locally. |
 
@@ -64,7 +64,7 @@ ZTN_HMS/
 | Python | 3.12.x |
 | PostgreSQL | 15+ |
 | OpenSSL | Latest stable (for generating TLS material if you replace `certs/`) |
-| ZTN IAM service | The Zero Trust IAM API from `ZTN_SIM` running locally or remotely |
+| ZT IAM service | The Zero Trust IAM API from `ZT_IAM` running locally or remotely |
 
 > **Note:** The included virtual environment (`venv/`) targets Python 3.10 packages. Create a fresh Python 3.12 virtual environment by following the next section for consistent results.
 
@@ -109,7 +109,7 @@ ZTN_HMS/
    ```
 
    - `SQLALCHEMY_DATABASE_URI` defaults to `postgresql://ztn:ztn%40sim@localhost:5432/hospital_db` in `config.py`. Update that constant (or subclass `Config`) if your Postgres connection string differs.
-   - `ZTN_IAM_URL` and `API_KEY` must match the running Zero Trust IAM service used in the `ZTN_SIM` experiments.
+   - `ZT_IAM_URL` and `API_KEY` must match the running Zero Trust IAM service used in the `ZT_IAM` experiments.
 
 2. Source the environment file (or export the variables manually):
    ```bash
@@ -172,20 +172,20 @@ The script pins the host name (`<local-host>`) to match the provided certificate
 
 All authentication flows terminate at the IAM service before users can reach the HMS dashboards:
 
-1. **Login** — `auth_routes.login` (`/auth/login`) forwards credentials to `${ZTN_IAM_URL}/login` with the `X-API-KEY` header and captures the returned `access_token`, `role`, `user_id`, and `trust_score` in the Flask session.
-2. **Adaptive MFA** — Session flags (`require_totp`, `require_webauthn`, `require_totp_setup`, `skip_all_mfa`) control which blueprint view to render next. TOTP enrollment uses `${ZTN_IAM_URL}/enroll-totp` and `${ZTN_IAM_URL}/setup-totp/confirm`; verification calls `${ZTN_IAM_URL}/verify-totp-login`. WebAuthn flows redirect to the IAM pages when `require_webauthn` is set.
+1. **Login** — `auth_routes.login` (`/auth/login`) forwards credentials to `${ZT_IAM_URL}/login` with the `X-API-KEY` header and captures the returned `access_token`, `role`, `user_id`, and `trust_score` in the Flask session.
+2. **Adaptive MFA** — Session flags (`require_totp`, `require_webauthn`, `require_totp_setup`, `skip_all_mfa`) control which blueprint view to render next. TOTP enrollment uses `${ZT_IAM_URL}/enroll-totp` and `${ZTN_IAM_URL}/setup-totp/confirm`; verification calls `${ZT_IAM_URL}/verify-totp-login`. WebAuthn flows redirect to the IAM pages when `require_webauthn` is set.
 3. **Role-based access** — Successful MFA writes cookies via Flask-JWT-Extended and routes the user to `dashboard/admin_dashboard`, `dashboard/doctor_dashboard`, or `dashboard/nurse_dashboard` as enforced by the `protect_role` decorator in `dashboard_routes.py`.
 
 To connect to your IAM service:
 - Ensure CORS/TLS settings allow the HMS origin.
-- Reuse the same seed data (users, authenticators) between `ZTN_SIM` and the HMS so that role IDs and MFA enrollment states are predictable.
+- Reuse the same seed data (users, authenticators) between `ZT_IAM` and the HMS so that role IDs and MFA enrollment states are predictable.
 
 ---
 
 ## Reproducing the experiment
 
 1. **Provision IAM identities**
-   - In `ZTN_SIM`, create at least three identities mapped to the `admin`, `doctor`, and `nurse` roles. Attach TOTP secrets and optionally WebAuthn credentials to exercise both MFA paths.
+   - In `ZT_IAM`, create at least three identities mapped to the `admin`, `doctor`, and `nurse` roles. Attach TOTP secrets and optionally WebAuthn credentials to exercise both MFA paths.
 
 2. **Start all services**
    - Launch the IAM backend and expose its HTTPS endpoint.
@@ -202,10 +202,10 @@ To connect to your IAM service:
    - Inspect the PostgreSQL tables to verify that role-restricted views only expose data to authorized users.
 
 5. **Document findings**
-   - Capture screenshots of each role’s dashboard to mirror the `ZTN_SIM` documentation.
+   - Capture screenshots of each role’s dashboard to mirror the `ZT_IAM` documentation.
    - Record IAM API responses to highlight adaptive decisions for future reproducibility.
 
-These steps mirror the methodology used for `ZTN_SIM`, making it straightforward to compare identity journeys between the IAM service and this relying party application.
+These steps mirror the methodology used for `ZT_IAM`, making it straightforward to compare identity journeys between the IAM service and this relying party application.
 
 ---
 
@@ -224,10 +224,10 @@ These steps mirror the methodology used for `ZTN_SIM`, making it straightforward
 | --- | --- | --- |
 | `ModuleNotFoundError` for Flask packages | Using the legacy `venv/` that targets Python 3.10 | Recreate a `.venv` with Python 3.12 and reinstall from `requirements.txt`. |
 | Unable to connect to PostgreSQL | Connection string mismatch or role missing | Update `SQLALCHEMY_DATABASE_URI` and verify the `ztn` role/database exist. |
-| IAM API returns `401 Unauthorized` | Missing/incorrect `X-API-KEY` header | Confirm the HMS `.env` uses the correct API key from `ZTN_SIM`. |
+| IAM API returns `401 Unauthorized` | Missing/incorrect `X-API-KEY` header | Confirm the HMS `.env` uses the correct API key from `ZT_IAM`. |
 | MFA loop when logging in | Flags `require_totp`/`require_webauthn` not cleared | Complete enrollment/verification flows; delete cookies if state becomes inconsistent. |
 | Browser warns about self-signed certs | Dev cert not trusted | Import `certs/hospital_app.crt` into your OS/browser trust store or use HTTP for quick smoke testing. |
 
 ---
 
-Happy experimenting! If you extend this HMS in lockstep with `ZTN_SIM`, update this README with the new steps so future researchers can reproduce your Zero Trust IAM evaluations.
+Happy experimenting! If you extend this HMS in lockstep with `ZT_IAM`, update this README with the new steps so future researchers can reproduce your Zero Trust IAM evaluations.
